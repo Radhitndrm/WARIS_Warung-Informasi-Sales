@@ -179,8 +179,7 @@ GEMINI_API_KEY=your_gemini_api_key
 
 | Email | Password | Role |
 |-------|----------|------|
-| admin@warung.com | password | Kasir (akses penuh) |
-| kasir@warung.com | password | Kasir |
+| kasir@poswarung.test | password | Kasir |
 
 ---
 
