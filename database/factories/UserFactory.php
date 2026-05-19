@@ -33,6 +33,15 @@ class UserFactory extends Factory
         ];
     }
 
+    public function kasir(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'name' => 'Kasir ' . fake()->firstName(),
+            'email' => 'kasir@poswarung.test',
+            'password' => Hash::make('password'),
+        ]);
+    }
+
     /**
      * Indicate that the model's email address should be unverified.
      */
