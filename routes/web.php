@@ -1,7 +1,9 @@
 <?php
 
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\ChatbotController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\KasirController;
 use App\Http\Controllers\ProductController;
 use Illuminate\Support\Facades\Route;
 
@@ -22,7 +24,8 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('/kategori/{category}', [CategoryController::class, 'destroy'])->name('kategori.destroy');
 
     // Kasir
-    Route::get('/kasir', fn () => view('kasir.index'))->name('kasir');
+    Route::get('/kasir', [KasirController::class, 'index'])->name('kasir');
+    Route::post('/kasir/checkout', [KasirController::class, 'checkout'])->name('kasir.checkout');
 
     // Produk
     Route::get('/produk', [ProductController::class, 'index'])->name('produk');
@@ -35,5 +38,14 @@ Route::middleware(['auth'])->group(function () {
 
     // Riwayat
     Route::get('/riwayat', fn () => view('riwayat.index'))->name('riwayat');
+
+    Route::prefix('/chatbot')->name('chatbot.')->group(function () {
+        Route::get('/', [ChatbotController::class, 'index'])->name('index');
+        Route::post('/send', [ChatbotController::class, 'sendMessage'])->name('send');
+        Route::get('/history', [ChatbotController::class, 'getHistory'])->name('history');
+        Route::delete('/history', [ChatbotController::class, 'clearHistory'])->name('clear');
+    });
+
+    Route::post('/stt', [App\Http\Controllers\SttController::class, 'transcribe'])->name('stt.transcribe');
 
 });

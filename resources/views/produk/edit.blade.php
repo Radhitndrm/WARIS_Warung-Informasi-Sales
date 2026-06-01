@@ -3,79 +3,113 @@
 @section('title', 'Edit Produk')
 
 @section('content')
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-<div class="space-y-6">
+<div class="max-w-2xl mx-auto">
+    <div class="bg-[#F4F2DE] rounded-2xl border border-[#8C8A75] shadow-sm p-8">
+        <div class="flex items-center gap-4 mb-6">
+            <a href="{{ route('produk') }}" class="text-gray-400 hover:text-gray-600 transition-colors">
+                <i class="fa-solid fa-arrow-left text-lg"></i>
+            </a>
+            <div>
+                <h1 class="text-xl font-bold text-gray-800">Edit Produk</h1>
+                <p class="text-sm text-gray-500 mt-0.5">Ubah data produk</p>
+            </div>
+        </div>
 
-    <div>
-        <h1 class="text-2xl font-bold text-primary">Edit Produk</h1>
-        <p class="text-sm text-gray-500">Ubah data produk</p>
-    </div>
-
-    <div class="bg-[#F4F2DE] rounded-2xl border border-[#8C8A75] p-6">
-
-        <form action="{{ route('produk.update', $product->id) }}" method="POST">
+        <form action="{{ route('produk.update', $product->id) }}" method="POST" enctype="multipart/form-data">
             @csrf
             @method('PUT')
 
-            <div class="mb-4">
-                <label class="block mb-2 font-medium">Nama Produk</label>
-                <input
-                    type="text"
-                    name="name"
-                    value="{{ $product->name }}"
-                    class="w-full border rounded-lg px-4 py-2"
-                    required>
+            <div class="mb-6">
+                <label for="name" class="block text-sm font-semibold text-gray-700 mb-1.5">Nama Produk</label>
+                <input type="text" id="name" name="name" value="{{ old('name', $product->name) }}" required autofocus
+                    class="w-full px-4 py-3 bg-white border border-[#8C8A75]/60 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-sidebar/40 focus:border-sidebar/50 placeholder:text-gray-400 transition-colors"
+                    placeholder="Masukkan nama produk">
+                @error('name')
+                <p class="mt-1.5 text-xs text-red-600 font-medium flex items-center gap-1">
+                    <i class="fa-solid fa-circle-exclamation"></i>
+                    {{ $message }}
+                </p>
+                @enderror
             </div>
 
-            <div class="mb-4">
-                <label class="block mb-2 font-medium">Kategori</label>
-
-                <select
-                    name="category_id"
-                    class="w-full border rounded-lg px-4 py-2"
-                    required>
-
+            <div class="mb-6">
+                <label for="category_id" class="block text-sm font-semibold text-gray-700 mb-1.5">Kategori</label>
+                <select id="category_id" name="category_id" required
+                    class="w-full px-4 py-3 bg-white border border-[#8C8A75]/60 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-sidebar/40 focus:border-sidebar/50 transition-colors">
+                    <option value="">Pilih kategori</option>
                     @foreach($categories as $category)
-                        <option
-                            value="{{ $category->id }}"
-                            {{ $product->category_id == $category->id ? 'selected' : '' }}>
+                        <option value="{{ $category->id }}" {{ old('category_id', $product->category_id) == $category->id ? 'selected' : '' }}>
                             {{ $category->name }}
                         </option>
                     @endforeach
-
                 </select>
+                @error('category_id')
+                <p class="mt-1.5 text-xs text-red-600 font-medium flex items-center gap-1">
+                    <i class="fa-solid fa-circle-exclamation"></i>
+                    {{ $message }}
+                </p>
+                @enderror
             </div>
 
-            <div class="mb-4">
-                <label class="block mb-2 font-medium">Harga</label>
-                <input
-                    type="number"
-                    name="price"
-                    value="{{ $product->price }}"
-                    class="w-full border rounded-lg px-4 py-2"
-                    required>
+            <div class="mb-6">
+                <label for="price" class="block text-sm font-semibold text-gray-700 mb-1.5">Harga</label>
+                <input type="number" id="price" name="price" value="{{ old('price', $product->price) }}" required
+                    class="w-full px-4 py-3 bg-white border border-[#8C8A75]/60 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-sidebar/40 focus:border-sidebar/50 placeholder:text-gray-400 transition-colors"
+                    placeholder="Masukkan harga produk">
+                @error('price')
+                <p class="mt-1.5 text-xs text-red-600 font-medium flex items-center gap-1">
+                    <i class="fa-solid fa-circle-exclamation"></i>
+                    {{ $message }}
+                </p>
+                @enderror
             </div>
 
-            <div class="mb-4">
-                <label class="block mb-2 font-medium">Stok</label>
-                <input
-                    type="number"
-                    name="stock"
-                    value="{{ $product->stock }}"
-                    class="w-full border rounded-lg px-4 py-2"
-                    required>
+            <div class="mb-6">
+                <label for="stock" class="block text-sm font-semibold text-gray-700 mb-1.5">Stok</label>
+                <input type="number" id="stock" name="stock" value="{{ old('stock', $product->stock) }}" required
+                    class="w-full px-4 py-3 bg-white border border-[#8C8A75]/60 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-sidebar/40 focus:border-sidebar/50 placeholder:text-gray-400 transition-colors"
+                    placeholder="Masukkan jumlah stok">
+                @error('stock')
+                <p class="mt-1.5 text-xs text-red-600 font-medium flex items-center gap-1">
+                    <i class="fa-solid fa-circle-exclamation"></i>
+                    {{ $message }}
+                </p>
+                @enderror
             </div>
 
-            <button
-                type="submit"
-                class="bg-yellow-500 text-white px-4 py-2 rounded-lg">
-                Update Produk
-            </button>
+            <div class="mb-6">
+                <label class="block text-sm font-semibold text-gray-700 mb-1.5">Gambar Produk</label>
+                @if ($product->image_url)
+                <div class="mb-3">
+                    <img src="{{ $product->image_url }}" alt="{{ $product->name }}"
+                        class="w-32 h-32 object-cover rounded-xl border border-[#8C8A75]/60">
+                </div>
+                @endif
+                <input type="file" id="image" name="image" accept="image/*"
+                    class="w-full px-4 py-3 bg-white border border-[#8C8A75]/60 rounded-xl text-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-sidebar file:text-white file:text-sm file:font-semibold hover:file:bg-sidebar-hover transition-colors">
+                <p class="mt-1.5 text-xs text-gray-400">Format: JPEG, PNG, WebP. Maks: 2MB. Upload gambar baru akan menggantikan yang lama.</p>
+                @error('image')
+                <p class="mt-1.5 text-xs text-red-600 font-medium flex items-center gap-1">
+                    <i class="fa-solid fa-circle-exclamation"></i>
+                    {{ $message }}
+                </p>
+                @enderror
+            </div>
 
+            <div class="flex items-center justify-end gap-3 pt-2">
+                <a href="{{ route('produk') }}"
+                    class="px-5 py-2.5 text-sm font-semibold text-gray-600 bg-white border border-[#8C8A75]/60 rounded-xl hover:bg-gray-50 transition-colors">
+                    Batal
+                </a>
+                <button type="submit"
+                    class="px-6 py-2.5 text-sm font-semibold text-white bg-sidebar rounded-xl hover:bg-sidebar-hover transition-colors">
+                    <i class="fa-solid fa-check mr-1.5"></i>
+                    Simpan
+                </button>
+            </div>
         </form>
-
     </div>
-
 </div>
-
 @endsection
