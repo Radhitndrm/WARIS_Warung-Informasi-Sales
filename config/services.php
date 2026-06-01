@@ -35,4 +35,14 @@ return [
         ],
     ],
 
+    'ollama' => [
+        'base_url' => env('OLLAMA_BASE_URL', 'http://localhost:11434'),
+        'model' => env('OLLAMA_MODEL', 'nous-hermes:7b'),
+    ],
+
+    'whisper' => [
+        'binary' => env('WHISPER_BINARY', '/opt/homebrew/bin/whisper-cli'),
+        'model' => env('WHISPER_MODEL', '/opt/homebrew/Cellar/whisper-cpp/1.8.5/share/whisper-cpp/ggml-tiny.bin'),
+    ],
+
 ];
