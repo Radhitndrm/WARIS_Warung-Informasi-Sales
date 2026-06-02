@@ -22,7 +22,7 @@ Aplikasi Point of Sale (POS) berbasis web untuk warung dengan asisten AI lokal (
 - **Autentikasi** — Login/register kasir dengan Laravel Fortify (2FA support)
 - **Manajemen Produk & Kategori** — CRUD produk dan kategori lengkap dengan stok & gambar
 - **Halaman POS** — Keranjang belanja real-time, kalkulasi total otomatis, cari produk via teks/suara
-- **Pembayaran** — Cash (hitung kembalian) dan QRIS (offline / mock)
+- **Pembayaran** — Cash (hitung kembalian) dan **QRIS via Midtrans Snap** (popup pembayaran otomatis + webhook)
 - **Dashboard** — Ringkasan penjualan harian, grafik 7 hari (Chart.js), notifikasi stok rendah
 - **Riwayat** — Daftar transaksi (filter tanggal — WIP)
 - **Chatbot AI (Ollama)** — Tanya stok/harga, rekomendasi produk, analisis penjualan, prediksi stok
@@ -40,7 +40,7 @@ Aplikasi Point of Sale (POS) berbasis web untuk warung dengan asisten AI lokal (
 | Auth | Laravel Fortify |
 | AI Chatbot | Ollama (Nous Hermes 7B) |
 | STT | Whisper (local) |
-| Payment | Midtrans (package terinstall, integrasi QRIS offline sementara) |
+| Payment | Midtrans Snap (QRIS real-time via Snap popup + webhook) |
 | Queue | Database |
 | HTTP Client | Guzzle |
 
@@ -55,11 +55,12 @@ pos-warung/
 │   ├── Http/
 │   │   └── Controllers/
 │   │       ├── DashboardController.php
-│   │       ├── KasirController.php     # POS + checkout (cash+qris)
-│   │       ├── CategoryController.php
-│   │       ├── ProductController.php
-│   │       ├── ChatbotController.php
-│   │       └── SttController.php       # Speech-to-text
+│       │   ├── KasirController.php              # POS + checkout (cash+midtrans snap)
+│       │   ├── PaymentNotificationController.php # Midtrans webhook handler
+│       │   ├── CategoryController.php
+│       │   ├── ProductController.php
+│       │   ├── ChatbotController.php
+│       │   └── SttController.php                # Speech-to-text
 │   ├── Models/
 │   │   ├── User.php
 │   │   ├── Category.php
@@ -71,10 +72,11 @@ pos-warung/
 │   ├── Providers/
 │   │   ├── AppServiceProvider.php
 │   │   └── FortifyServiceProvider.php
-│   └── Services/
-│       ├── OllamaService.php         # Chatbot AI (local LLM)
-│       ├── WhisperService.php        # Speech-to-text lokal
-│       └── DbContextService.php      # Konteks database utk AI
+│       └── Services/
+│           ├── MidtransService.php       # Midtrans Snap API + cek status
+│           ├── OllamaService.php         # Chatbot AI (local LLM)
+│           ├── WhisperService.php        # Speech-to-text lokal
+│           └── DbContextService.php      # Konteks database utk AI
 ├── database/
 │   ├── factories/                    # UserFactory, CategoryFactory, ProductFactory, ChatHistoryFactory
 │   ├── migrations/                   # 10 migration (users, cache, jobs, 2FA, categories, products, orders, order_items, payments, chat_histories)
@@ -173,9 +175,9 @@ QUEUE_CONNECTION=database
 CACHE_STORE=database
 SESSION_DRIVER=database
 
-# Midtrans (opsional — pembayaran QRIS masih offline)
-MIDTRANS_SERVER_KEY=
-MIDTRANS_CLIENT_KEY=
+# Midtrans (wajib untuk pembayaran QRIS — isi key dari dashboard)
+MIDTRANS_SERVER_KEY=Mid-server-xxxxxxxxxxxx
+MIDTRANS_CLIENT_KEY=Mid-client-xxxxxxxxxxxx
 MIDTRANS_IS_PRODUCTION=false
 
 # Ollama (chatbot AI lokal)
@@ -220,7 +222,7 @@ Login
         ├── Manajemen Kategori → tambah / edit / hapus kategori
         ├── Halaman POS → cari produk (teks/suara) → keranjang → bayar
         │     ├── Cash → input nominal → hitung kembalian → selesai
-        │     └── QRIS → generate kode → konfirmasi manual → selesai
+        │     └── QRIS → popup Midtrans Snap → bayar via QRIS/credit card → konfirmasi otomatis
         ├── Riwayat → daftar transaksi (WIP)
         └── Chatbot AI → tanya stok/harga, rekomendasi, analisis penjualan, voice input
 ```
@@ -247,7 +249,7 @@ Login
 - Model + Eloquent relationships
 - CRUD Kategori & Produk (dengan upload gambar)
 - Halaman POS: keranjang real-time, search, voice input
-- Pembayaran Cash + QRIS (offline/mock)
+- Pembayaran Cash + QRIS via Midtrans Snap (popup real-time + webhook)
 - Dashboard: ringkasan, grafik Chart.js, stok rendah, widget chatbot
 - Chatbot AI: teks, voice, analisis penjualan, rekomendasi, prediksi stok
 - Speech-to-Text via Whisper (browser API + fallback)
@@ -256,7 +258,6 @@ Login
 
 ### 🚧 WIP / Belum
 - Riwayat filter tanggal + export PDF (rute ada, view belum)
-- Integrasi Midtrans Snap (QRIS masih offline manual)
 - Implementasi penuh desain Figma
 
 ---
