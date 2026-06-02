@@ -4,6 +4,7 @@ use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\ChatbotController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\KasirController;
+use App\Http\Controllers\PaymentNotificationController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ReportController;
 use Illuminate\Support\Facades\Route;
@@ -11,6 +12,8 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', function () {
     return redirect('/login');
 });
+
+Route::post('/midtrans/notification', [PaymentNotificationController::class, 'handle'])->name('midtrans.notification');
 
 Route::middleware(['auth'])->group(function () {
 
@@ -27,6 +30,7 @@ Route::middleware(['auth'])->group(function () {
     // Kasir
     Route::get('/kasir', [KasirController::class, 'index'])->name('kasir');
     Route::post('/kasir/checkout', [KasirController::class, 'checkout'])->name('kasir.checkout');
+    Route::post('/kasir/payment-callback', [KasirController::class, 'paymentCallback'])->name('kasir.payment-callback');
 
     // Produk
     Route::get('/produk', [ProductController::class, 'index'])->name('produk');

@@ -10,7 +10,7 @@ class Payment extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['order_id', 'method', 'amount', 'change_amount', 'midtrans_id', 'status'];
+    protected $fillable = ['order_id', 'method', 'amount', 'change_amount', 'midtrans_id', 'snap_token', 'payment_url', 'status'];
 
     public function order(): BelongsTo
     {
