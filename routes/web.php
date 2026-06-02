@@ -5,6 +5,7 @@ use App\Http\Controllers\ChatbotController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\KasirController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\ReportController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -37,7 +38,9 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('/produk/{product}', [ProductController::class, 'destroy'])->name('produk.destroy');
 
     // Riwayat
-    Route::get('/riwayat', fn () => view('riwayat.index'))->name('riwayat');
+    Route::get('/riwayat', [ReportController::class, 'index'])->name('riwayat');
+    Route::get('/riwayat/export/pdf', [ReportController::class, 'exportPdf'])->name('riwayat.export.pdf');
+    Route::get('/riwayat/export/excel', [ReportController::class, 'exportExcel'])->name('riwayat.export.excel');
 
     Route::prefix('/chatbot')->name('chatbot.')->group(function () {
         Route::get('/', [ChatbotController::class, 'index'])->name('index');
