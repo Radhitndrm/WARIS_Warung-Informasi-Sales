@@ -7,6 +7,7 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Payment;
 use App\Models\Product;
+use App\Services\MidtransService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -66,45 +67,76 @@ class KasirController extends Controller
                 $product->decrement('stock', $item['quantity']);
             }
 
+            $isCash = $validated['payment_method'] === 'cash';
+
             $order = Order::create([
                 'user_id' => $user->id,
                 'invoice_no' => $invoiceNo,
                 'total' => $total,
-                'status' => 'paid',
+                'status' => $isCash ? 'paid' : 'pending',
             ]);
 
             $order->items()->saveMany($orderItems);
 
-            $amountPaid = $validated['payment_method'] === 'qris' ? $total : $validated['amount_paid'];
-            $changeAmount = $validated['payment_method'] === 'cash' ? ($amountPaid - $total) : 0;
+            if ($isCash) {
+                $amountPaid = $validated['amount_paid'];
+                $changeAmount = $amountPaid - $total;
 
-            Payment::create([
+                Payment::create([
+                    'order_id' => $order->id,
+                    'method' => 'cash',
+                    'amount' => $amountPaid,
+                    'change_amount' => $changeAmount,
+                    'status' => 'success',
+                ]);
+
+                DB::commit();
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Transaksi berhasil',
+                    'order' => [
+                        'id' => $order->id,
+                        'invoice_no' => $order->invoice_no,
+                        'total' => $order->total,
+                        'change_amount' => $changeAmount,
+                        'payment_method' => 'cash',
+                        'items' => collect($orderItems)->map(fn ($item) => [
+                            'product' => $item->product->name,
+                            'quantity' => $item->quantity,
+                            'price' => $item->price,
+                            'subtotal' => $item->subtotal,
+                        ]),
+                        'created_at' => $order->created_at->format('d/m/Y H:i'),
+                    ],
+                ]);
+            }
+
+            $payment = Payment::create([
                 'order_id' => $order->id,
-                'method' => $validated['payment_method'],
-                'amount' => $amountPaid,
-                'change_amount' => $changeAmount,
-                'status' => 'success',
+                'method' => 'qris',
+                'amount' => $total,
+                'change_amount' => 0,
+                'status' => 'pending',
+            ]);
+
+            $midtrans = app(MidtransService::class);
+            $snapResponse = $midtrans->createSnapTransaction($order->load('items.product', 'user'));
+
+            $payment->update([
+                'snap_token' => $snapResponse->token,
+                'payment_url' => $snapResponse->redirect_url,
+                'midtrans_id' => $order->invoice_no,
             ]);
 
             DB::commit();
 
             return response()->json([
                 'success' => true,
-                'message' => 'Transaksi berhasil',
-                'order' => [
-                    'id' => $order->id,
-                    'invoice_no' => $order->invoice_no,
-                    'total' => $order->total,
-                    'change_amount' => $changeAmount,
-                    'payment_method' => $validated['payment_method'],
-                    'items' => collect($orderItems)->map(fn ($item) => [
-                        'product' => $item->product->name,
-                        'quantity' => $item->quantity,
-                        'price' => $item->price,
-                        'subtotal' => $item->subtotal,
-                    ]),
-                    'created_at' => $order->created_at->format('d/m/Y H:i'),
-                ],
+                'message' => 'Menunggu pembayaran QRIS',
+                'snap_token' => $snapResponse->token,
+                'order_id' => $order->id,
+                'payment_id' => $payment->id,
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -114,5 +146,88 @@ class KasirController extends Controller
                 'message' => 'Terjadi kesalahan: ' . $e->getMessage(),
             ], 500);
         }
+    }
+
+    public function paymentCallback(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'order_id' => 'required|exists:orders,id',
+        ]);
+
+        try {
+            $order = Order::with('payment')->findOrFail($validated['order_id']);
+
+            if ($order->status === 'paid') {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Pembayaran sudah berhasil sebelumnya',
+                    'order' => $this->formatOrderReceipt($order),
+                ]);
+            }
+
+            try {
+                $midtrans = app(MidtransService::class);
+                $status = $midtrans->getTransactionStatus($order->invoice_no);
+            } catch (\Exception $e) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Belum ada pembayaran ditemukan',
+                ]);
+            }
+
+            $transactionStatus = $status->transaction_status;
+            $fraudStatus = $status->fraud_status;
+
+            if ($transactionStatus === 'capture' || $transactionStatus === 'settlement') {
+                if ($fraudStatus === 'accept' || $fraudStatus === null) {
+                    $order->update(['status' => 'paid']);
+                    $order->payment->update(['status' => 'success']);
+
+                    return response()->json([
+                        'success' => true,
+                        'message' => 'Pembayaran berhasil',
+                        'order' => $this->formatOrderReceipt($order),
+                    ]);
+                }
+            }
+
+            if (in_array($transactionStatus, ['deny', 'cancel', 'expire'])) {
+                $order->payment->update(['status' => 'failed']);
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Pembayaran gagal: ' . $transactionStatus,
+                ]);
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Pembayaran masih diproses',
+                'status' => $transactionStatus,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal memverifikasi pembayaran: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    private function formatOrderReceipt(Order $order): array
+    {
+        return [
+            'id' => $order->id,
+            'invoice_no' => $order->invoice_no,
+            'total' => $order->total,
+            'change_amount' => $order->payment->change_amount,
+            'payment_method' => $order->payment->method,
+            'items' => $order->items->map(fn ($item) => [
+                'product' => $item->product->name,
+                'quantity' => $item->quantity,
+                'price' => $item->price,
+                'subtotal' => $item->subtotal,
+            ]),
+            'created_at' => $order->created_at->format('d/m/Y H:i'),
+        ];
     }
 }

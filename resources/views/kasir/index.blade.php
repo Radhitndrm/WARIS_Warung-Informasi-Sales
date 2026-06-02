@@ -4,6 +4,7 @@
 
 @push('head')
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="https://{{ config('services.midtrans.is_production') ? 'app' : 'app.sandbox' }}.midtrans.com/snap/snap.js" data-client-key="{{ config('services.midtrans.client_key') }}"></script>
 <style>
     .kasir-layout {
         display: flex;
@@ -340,6 +341,8 @@ function kasirApp() {
         paymentMethod: 'cash',
         amountPaid: 0,
         checkoutLoading: false,
+        processingPayment: false,
+        snapToken: null,
         showReceipt: false,
         lastOrder: null,
         listening: false,
@@ -434,19 +437,89 @@ function kasirApp() {
                 });
                 const data = await res.json();
                 if (data.success) {
-                    this.lastOrder = data.order;
-                    this.showReceipt = true;
-                    // update local product stock
-                    this.cart.forEach(cartItem => {
-                        const prod = this.products.find(p => p.id === cartItem.product_id);
-                        if (prod) prod.stock -= cartItem.quantity;
-                    });
+                    if (data.snap_token) {
+                        this.snapToken = data.snap_token;
+                        this.lastOrder = { id: data.order_id };
+                        this.checkoutLoading = false;
+                        this.processingPayment = true;
+                        this.openSnap();
+                    } else {
+                        this.lastOrder = data.order;
+                        this.showReceipt = true;
+                        this.cart.forEach(cartItem => {
+                            const prod = this.products.find(p => p.id === cartItem.product_id);
+                            if (prod) prod.stock -= cartItem.quantity;
+                        });
+                    }
                 } else {
                     alert(data.message || 'Gagal memproses transaksi');
                 }
             } catch (e) {
                 alert('Terjadi kesalahan koneksi');
             } finally {
+                if (!this.snapToken) {
+                    this.checkoutLoading = false;
+                }
+            }
+        },
+
+        openSnap() {
+            const snapToken = this.snapToken;
+            const self = this;
+            window.snap.pay(snapToken, {
+                onSuccess: function(result) {
+                    self.verifyPayment();
+                },
+                onPending: function(result) {
+                    alert('Pembayaran masih diproses. Silakan cek status transaksi nanti.');
+                    self.resetCart();
+                },
+                onError: function(result) {
+                    alert('Pembayaran gagal: ' + (result.status_message || 'Terjadi kesalahan'));
+                    self.resetCart();
+                },
+                onClose: function() {
+                    if (self.processingPayment) {
+                        self.processingPayment = false;
+                        self.snapToken = null;
+                        self.checkoutLoading = false;
+                        self.lastOrder = null;
+                    }
+                },
+            });
+        },
+
+        async verifyPayment() {
+            if (!this.lastOrder && !this.snapToken) return;
+            try {
+                const orderId = this.lastOrder?.id;
+                if (!orderId) return;
+                const res = await fetch('{{ route("kasir.payment-callback") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    },
+                    body: JSON.stringify({ order_id: orderId }),
+                });
+                const data = await res.json();
+                if (data.success) {
+                    this.lastOrder = data.order;
+                    this.showReceipt = true;
+                    this.cart.forEach(cartItem => {
+                        const prod = this.products.find(p => p.id === cartItem.product_id);
+                        if (prod) prod.stock -= cartItem.quantity;
+                    });
+                } else {
+                    alert(data.message || 'Pembayaran belum dikonfirmasi');
+                    this.resetCart();
+                }
+            } catch (e) {
+                alert('Gagal memverifikasi pembayaran');
+                this.resetCart();
+            } finally {
+                this.processingPayment = false;
+                this.snapToken = null;
                 this.checkoutLoading = false;
             }
         },
@@ -457,6 +530,8 @@ function kasirApp() {
             this.paymentMethod = 'cash';
             this.showReceipt = false;
             this.lastOrder = null;
+            this.snapToken = null;
+            this.processingPayment = false;
         },
 
         toggleMic() {
