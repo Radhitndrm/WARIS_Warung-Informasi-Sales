@@ -14,6 +14,7 @@ class Product extends Model
 
     protected $fillable = ['category_id', 'name', 'price', 'stock', 'image', 'is_active'];
 
+    protected $appends = ['image_url'];
     protected $casts = ['is_active' => 'boolean'];
 
     public function category(): BelongsTo
