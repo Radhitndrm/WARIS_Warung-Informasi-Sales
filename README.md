@@ -24,8 +24,9 @@ Aplikasi Point of Sale (POS) berbasis web untuk warung dengan asisten AI lokal (
 - **Halaman POS** — Keranjang belanja real-time, kalkulasi total otomatis, cari produk via teks/suara
 - **Pembayaran** — Cash (hitung kembalian) dan **QRIS via Midtrans Snap** (popup pembayaran otomatis + webhook)
 - **Dashboard** — Ringkasan penjualan harian, grafik 7 hari (Chart.js), notifikasi stok rendah
-- **Riwayat** — Daftar transaksi (filter tanggal — WIP)
-- **Chatbot AI (Ollama)** — Tanya stok/harga, rekomendasi produk, analisis penjualan, prediksi stok
+- **Riwayat** — Daftar transaksi dengan filter (tanggal, metode, status), grafik ringkasan, export PDF & Excel, detail transaksi
+- **Live Search** — Pencarian real-time client-side di halaman Produk & Kategori, header search terintegrasi dengan filter Riwayat
+- **Chatbot AI (Ollama)** — Tanya stok/harga, rekomendasi produk, analisis penjualan, prediksi stok, panduan penggunaan
 - **Voice Input** — Input teks ke POS & Chatbot via browser Speech-to-Text + Whisper (fallback)
 
 ---
@@ -72,11 +73,11 @@ pos-warung/
 │   ├── Providers/
 │   │   ├── AppServiceProvider.php
 │   │   └── FortifyServiceProvider.php
-│       └── Services/
-│           ├── MidtransService.php       # Midtrans Snap API + cek status
-│           ├── OllamaService.php         # Chatbot AI (local LLM)
-│           ├── WhisperService.php        # Speech-to-text lokal
-│           └── DbContextService.php      # Konteks database utk AI
+│   └── Services/
+│       ├── MidtransService.php       # Midtrans Snap API + cek status
+│       ├── OllamaService.php         # Chatbot AI (local LLM)
+│       ├── WhisperService.php        # Speech-to-text lokal
+│       └── DbContextService.php      # Konteks database utk AI
 ├── database/
 │   ├── factories/                    # UserFactory, CategoryFactory, ProductFactory, ChatHistoryFactory
 │   ├── migrations/                   # 10 migration (users, cache, jobs, 2FA, categories, products, orders, order_items, payments, chat_histories)
@@ -90,7 +91,8 @@ pos-warung/
 │       ├── kasir/                    # Halaman POS
 │       ├── produk/                   # index, create, edit
 │       ├── kategori/                 # index, create, edit
-│       └── chatbot/                  # Full chatbot page
+│       ├── chatbot/                  # Full chatbot page
+│       └── reports/                  # Riwayat transaksi (index, export PDF)
 ├── routes/
 │   ├── web.php
 │   └── console.php
@@ -223,7 +225,7 @@ Login
         ├── Halaman POS → cari produk (teks/suara) → keranjang → bayar
         │     ├── Cash → input nominal → hitung kembalian → selesai
         │     └── QRIS → popup Midtrans Snap → bayar via QRIS/credit card → konfirmasi otomatis
-        ├── Riwayat → daftar transaksi (WIP)
+        ├── Riwayat → daftar transaksi + filter + export PDF/Excel
         └── Chatbot AI → tanya stok/harga, rekomendasi, analisis penjualan, voice input
 ```
 
@@ -255,10 +257,10 @@ Login
 - Speech-to-Text via Whisper (browser API + fallback)
 - DbContextService (konteks cerdas untuk AI: 10+ jenis analisis)
 - Layout lengkap (sidebar, header, komponen reusable)
-
-### 🚧 WIP / Belum
-- Riwayat filter tanggal + export PDF (rute ada, view belum)
-- Implementasi penuh desain Figma
+- Riwayat: filter (tanggal, metode, status, pencarian), grafik ringkasan, export PDF & Excel, detail transaksi
+- Live search client-side di Produk & Kategori via header search bar
+- Header search terintegrasi dengan form filter halaman Riwayat
+- Lisensi MIT
 
 ---
 
@@ -283,5 +285,7 @@ git push origin fitur/nama-fitur
 ---
 
 ## 📄 Lisensi
+
+MIT License — lihat file [LICENSE](LICENSE) untuk detail lengkap.
 
 Project ini dibuat untuk keperluan tugas mata kuliah **Pemrograman Web Lanjut**.
