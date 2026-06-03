@@ -46,34 +46,41 @@
                     <th class="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider w-56">Aksi</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-[#8C8A75]/20">
-                @forelse ($categories as $category)
+            <tbody x-data="{
+                categories: {{ $categories->loadCount('products')->values()->toJson() }},
+                query: '',
+                get filtered() {
+                    const q = this.query.toLowerCase();
+                    return !q ? this.categories : this.categories.filter(c => c.name.toLowerCase().includes(q));
+                }
+            }" @live-search.window="query = $event.detail || ''">
+                <template x-for="(category, index) in filtered" :key="category.id">
                 <tr class="hover:bg-[#E6E4CE]/40 transition-colors">
-                    <td class="px-6 py-4 text-sm text-gray-500 font-medium">{{ $loop->iteration }}</td>
+                    <td class="px-6 py-4 text-sm text-gray-500 font-medium" x-text="index + 1"></td>
                     <td class="px-6 py-4">
                         <div class="flex items-center gap-3">
                             <div class="w-10 h-10 rounded-xl bg-[#DBC5E8] flex items-center justify-center text-gray-700 shrink-0">
                                 <i class="fa-solid fa-tag"></i>
                             </div>
                             <div>
-                                <p class="text-sm font-semibold text-gray-800">{{ $category->name }}</p>
-                                <p class="text-xs text-gray-400">ID: #{{ $category->id }}</p>
+                                <p class="text-sm font-semibold text-gray-800" x-text="category.name"></p>
+                                <p class="text-xs text-gray-400" x-text="'ID: #' + category.id"></p>
                             </div>
                         </div>
                     </td>
                     <td class="px-6 py-4 text-center">
-                        <span class="inline-flex items-center justify-center bg-[#BFDCDE] text-gray-800 text-xs font-bold px-3 py-1.5 rounded-full min-w-[32px]">
-                            {{ $category->products_count }}
+                        <span class="inline-flex items-center justify-center bg-[#BFDCDE] text-gray-800 text-xs font-bold px-3 py-1.5 rounded-full min-w-[32px]"
+                            x-text="category.products_count">
                         </span>
                     </td>
                     <td class="px-6 py-4">
                         <div class="flex items-center justify-center gap-2">
-                            <a href="{{ route('kategori.edit', $category) }}"
+                            <a :href="`/kategori/${category.id}/edit`"
                                 class="inline-flex items-center gap-1.5 bg-[#BFDCDE] text-gray-800 px-4 py-2 rounded-lg text-xs font-bold hover:bg-[#A8C8CA] transition-colors">
                                 <i class="fa-solid fa-pen-to-square"></i>
                                 Edit
                             </a>
-                            <button @click="$dispatch('open-modal', 'delete-{{ $category->id }}')"
+                            <button @click="$dispatch('open-modal', 'delete-' + category.id)"
                                 class="inline-flex items-center gap-1.5 bg-[#F7CDCD] text-gray-800 px-4 py-2 rounded-lg text-xs font-bold hover:bg-[#E8B8B8] transition-colors">
                                 <i class="fa-solid fa-trash-can"></i>
                                 Hapus
@@ -81,8 +88,8 @@
                         </div>
                     </td>
                 </tr>
-                @empty
-                <tr>
+                </template>
+                <tr x-show="filtered.length === 0">
                     <td colspan="4" class="px-6 py-16 text-center text-gray-400">
                         <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-200 flex items-center justify-center">
                             <i class="fa-solid fa-folder-open text-2xl text-gray-300"></i>
@@ -91,7 +98,6 @@
                         <p class="text-sm mt-1">Klik "Tambah Kategori" untuk menambahkan kategori pertama.</p>
                     </td>
                 </tr>
-                @endforelse
             </tbody>
         </table>
     </div>

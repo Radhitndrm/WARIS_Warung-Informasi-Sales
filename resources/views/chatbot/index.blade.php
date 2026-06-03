@@ -343,6 +343,11 @@
         .then(() => location.reload());
     });
 
+    window.addEventListener('search-submit', (e) => {
+        chatInput.value = e.detail;
+        sendMessage();
+    });
+
     setTimeout(scrollToBottom, 100);
     loadHistory();
 })();

@@ -390,6 +390,14 @@
 
 @push('scripts')
 <script>
+    window.addEventListener('live-search', (e) => {
+        document.querySelector('#filterForm input[name="search"]').value = e.detail || '';
+    });
+    window.addEventListener('search-submit', (e) => {
+        document.querySelector('#filterForm input[name="search"]').value = e.detail || '';
+        document.getElementById('filterForm').submit();
+    });
+
     // Pie Chart Metode Pembayaran
     new Chart(document.getElementById('chartMetode'), {
         type: 'doughnut',

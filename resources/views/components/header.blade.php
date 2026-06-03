@@ -1,22 +1,26 @@
 <header class="h-16 bg-cream border-b border-border flex items-center px-6 gap-4">
 
-    {{-- Search (tengah) --}}
+    @unless(request()->routeIs('dashboard') || request()->routeIs('kasir') || request()->routeIs('chatbot.*'))
     <div class="flex-1 flex justify-center">
-        <div class="relative w-80">
+        <div class="relative w-80" x-data="{}">
             <span class="absolute inset-y-0 left-4 flex items-center text-muted">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round"
                         d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
                 </svg>
             </span>
-            <input type="text" placeholder="Search" class="w-full pl-10 pr-5 py-2 text-sm bg-cream border border-border rounded-full
+            <input type="text" @input="window.dispatchEvent(new CustomEvent('live-search', { detail: $event.target.value }))"
+                @keydown.enter="if($event.target.value.trim()) window.dispatchEvent(new CustomEvent('search-submit', { detail: $event.target.value.trim() }))"
+                placeholder="Search"
+                class="w-full pl-10 pr-5 py-2 text-sm bg-cream border border-border rounded-full
                        focus:outline-none focus:ring-2 focus:ring-sidebar/40 focus:border-sidebar/50
                        placeholder:text-muted/60 text-primary">
         </div>
     </div>
+    @endunless
 
     {{-- User --}}
-    <div class="relative" x-data="{ open: false }">
+    <div class="relative ml-auto" x-data="{ open: false }">
         <button @click="open = !open"
             class="flex items-center gap-2.5 text-sm text-primary hover:opacity-80 transition-opacity">
 
