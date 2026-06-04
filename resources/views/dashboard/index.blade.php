@@ -16,7 +16,7 @@
         </div>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         <div class="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
             <div class="flex items-center gap-3">
                 <div class="w-11 h-11 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-600 shrink-0">
@@ -29,6 +29,23 @@
                     <h3 class="text-lg font-bold text-primary">Rp {{ number_format($totalPenjualanHariIni, 0, ',', '.') }}</h3>
                     <p class="text-xs font-semibold {{ $penjualanGrowth >= 0 ? 'text-green-600' : 'text-red-500' }}">
                         {{ $penjualanGrowth >= 0 ? '↑' : '↓' }} {{ abs($penjualanGrowth) }}%
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
+            <div class="flex items-center gap-3">
+                <div class="w-11 h-11 rounded-xl bg-green-500/10 flex items-center justify-center text-green-600 shrink-0">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
+                <div>
+                    <p class="text-xs font-medium text-muted">Laba Hari Ini</p>
+                    <h3 class="text-lg font-bold text-green-700">Rp {{ number_format($labaHariIni, 0, ',', '.') }}</h3>
+                    <p class="text-xs font-semibold {{ $labaGrowth >= 0 ? 'text-green-600' : 'text-red-500' }}">
+                        {{ $labaGrowth >= 0 ? '↑' : '↓' }} {{ abs($labaGrowth) }}%
                     </p>
                 </div>
             </div>
@@ -89,10 +106,14 @@
             <div class="h-64 w-full relative">
                 <canvas id="salesChart"></canvas>
             </div>
-            <div class="grid grid-cols-3 border-t border-gray-100 mt-4 pt-3 text-center text-xs">
+            <div class="grid grid-cols-4 border-t border-gray-100 mt-4 pt-3 text-center text-xs">
                 <div>
                     <p class="text-muted"><span class="w-2.5 h-2.5 rounded-full bg-blue-500 inline-block mr-1.5"></span>Total Penjualan</p>
                     <p class="font-bold text-sm text-primary mt-0.5">Rp {{ number_format(array_sum($chartData), 0, ',', '.') }}</p>
+                </div>
+                <div>
+                    <p class="text-muted"><span class="w-2.5 h-2.5 rounded-full bg-green-500 inline-block mr-1.5"></span>Total Laba</p>
+                    <p class="font-bold text-sm text-green-700 mt-0.5">Rp {{ number_format(array_sum($labaChartData), 0, ',', '.') }}</p>
                 </div>
                 <div>
                     <p class="text-muted"><span class="w-2.5 h-2.5 rounded-full bg-emerald-400 inline-block mr-1.5"></span>Jumlah Transaksi</p>
@@ -249,6 +270,10 @@ setTimeout(() => {
     gradient.addColorStop(0, 'rgba(59, 130, 246, 0.25)');
     gradient.addColorStop(1, 'rgba(59, 130, 246, 0.0)');
 
+    const gradientLaba = ctx.createLinearGradient(0, 0, 0, 300);
+    gradientLaba.addColorStop(0, 'rgba(34, 197, 94, 0.25)');
+    gradientLaba.addColorStop(1, 'rgba(34, 197, 94, 0.0)');
+
     new Chart(ctx, {
         type: 'line',
         data: {
@@ -265,12 +290,24 @@ setTimeout(() => {
                 fill: true,
                 backgroundColor: gradient,
                 tension: 0.4
+            }, {
+                label: 'Laba',
+                data: @json($labaChartData),
+                borderColor: '#22C55E',
+                borderWidth: 2.5,
+                pointBackgroundColor: '#fff',
+                pointBorderColor: '#22C55E',
+                pointBorderWidth: 2,
+                pointRadius: 4,
+                fill: true,
+                backgroundColor: gradientLaba,
+                tension: 0.4
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
+            plugins: { legend: { display: true, position: 'bottom', labels: { padding: 16, usePointStyle: true, font: { size: 11 } } } },
             scales: {
                 y: {
                     beginAtZero: true,

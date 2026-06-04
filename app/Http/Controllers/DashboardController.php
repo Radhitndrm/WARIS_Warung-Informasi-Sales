@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\Order;
+use App\Models\OrderItem;
 use App\Models\Product;
+use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
@@ -39,8 +41,21 @@ class DashboardController extends Controller
 
         $stokMenipis = $produkStokMenipis->count();
 
+        $labaHariIni = OrderItem::whereHas('order', fn ($q) => $q->whereDate('created_at', today())->where('status', 'paid'))
+            ->join('products', 'order_items.product_id', '=', 'products.id')
+            ->sum(DB::raw('(order_items.price - products.purchase_price) * order_items.quantity'));
+
+        $labaKemarin = OrderItem::whereHas('order', fn ($q) => $q->whereDate('created_at', today()->subDay())->where('status', 'paid'))
+            ->join('products', 'order_items.product_id', '=', 'products.id')
+            ->sum(DB::raw('(order_items.price - products.purchase_price) * order_items.quantity'));
+
+        $labaGrowth = $labaKemarin > 0
+            ? round((($labaHariIni - $labaKemarin) / $labaKemarin) * 100)
+            : ($labaHariIni > 0 ? 100 : 0);
+
         $chartLabels = [];
         $chartData = [];
+        $labaChartData = [];
 
         for ($i = 6; $i >= 0; $i--) {
             $date = today()->subDays($i);
@@ -48,6 +63,9 @@ class DashboardController extends Controller
             $chartData[] = Order::whereDate('created_at', $date)
                 ->where('status', 'paid')
                 ->sum('total');
+            $labaChartData[] = OrderItem::whereHas('order', fn ($q) => $q->whereDate('created_at', $date)->where('status', 'paid'))
+                ->join('products', 'order_items.product_id', '=', 'products.id')
+                ->sum(DB::raw('(order_items.price - products.purchase_price) * order_items.quantity'));
         }
 
         return view('dashboard.index', compact(
@@ -60,6 +78,9 @@ class DashboardController extends Controller
             'produkStokMenipis',
             'chartLabels',
             'chartData',
+            'labaHariIni',
+            'labaGrowth',
+            'labaChartData',
         ));
     }
 }

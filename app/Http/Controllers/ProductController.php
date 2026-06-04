@@ -29,6 +29,7 @@ class ProductController extends Controller
             'name' => 'required|string|max:255',
             'category_id' => 'required|exists:categories,id',
             'price' => 'required|integer|min:0',
+            'purchase_price' => 'required|integer|min:0',
             'stock' => 'required|integer|min:0',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
         ]);
@@ -41,6 +42,7 @@ class ProductController extends Controller
             'name' => $validated['name'],
             'category_id' => $validated['category_id'],
             'price' => $validated['price'],
+            'purchase_price' => $validated['purchase_price'],
             'stock' => $validated['stock'],
             'image' => $validated['image'] ?? null,
             'is_active' => true,
@@ -63,6 +65,7 @@ class ProductController extends Controller
             'name' => 'required|string|max:255',
             'category_id' => 'required|exists:categories,id',
             'price' => 'required|integer|min:0',
+            'purchase_price' => 'required|integer|min:0',
             'stock' => 'required|integer|min:0',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
         ]);

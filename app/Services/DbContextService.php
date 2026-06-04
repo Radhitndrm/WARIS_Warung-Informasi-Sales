@@ -24,7 +24,8 @@ class DbContextService
         if (
             str_contains($lower, 'produk') || str_contains($lower, 'product') ||
             str_contains($lower, 'barang') || str_contains($lower, 'harga') ||
-            str_contains($lower, 'price')
+            str_contains($lower, 'price') || str_contains($lower, 'laba') ||
+            str_contains($lower, 'keuntungan')
         ) {
             $ctx .= "\n" . $this->getProducts();
         }
@@ -122,10 +123,11 @@ class DbContextService
         } elseif (str_contains($lower, 'produk') || str_contains($lower, 'barang')) {
             $guide .= "— PRODUK —\n";
             $guide .= "• Lihat produk: buka menu Produk\n";
-            $guide .= "• Tambah: klik 'Tambah Produk', isi nama, kategori, harga, stok, upload gambar\n";
+            $guide .= "• Tambah: klik 'Tambah Produk', isi nama, kategori, harga beli, harga jual, stok, upload gambar\n";
             $guide .= "• Edit: klik 'Edit' pada produk, ubah data, simpan\n";
             $guide .= "• Hapus: klik 'Hapus', konfirmasi di modal\n";
             $guide .= "• Upload gambar: format JPEG/PNG/WebP, maks 2MB\n";
+            $guide .= "• Laba: selisih harga jual - harga beli, terlihat di tabel produk & dashboard\n";
         } elseif (str_contains($lower, 'kasir') || str_contains($lower, 'jual') || str_contains($lower, 'transaksi')) {
             $guide .= "— KASIR —\n";
             $guide .= "• Buka menu Kasir\n";
@@ -432,7 +434,7 @@ class DbContextService
     protected function getMarginRecommendation(string $message): string
     {
         $lower = strtolower($message);
-        $lines = "REKOMENDASI MARGIN & HARGA JUAL:\n";
+        $lines = "ANALISIS LABA & MARGIN:\n";
 
         $modal = $this->extractNumber($message);
 
@@ -446,40 +448,40 @@ class DbContextService
             }
         }
 
-        // Show current products with margin estimates
-        $lines .= "\nRekomendasi margin per kategori:\n";
+        $lines .= "\nLaba per produk (data aktual):\n";
+        $products = Product::where('is_active', true)
+            ->with('category')
+            ->where('purchase_price', '>', 0)
+            ->orderByDesc(DB::raw('price - purchase_price'))
+            ->get();
+
+        if ($products->isNotEmpty()) {
+            foreach ($products as $p) {
+                $laba = $p->price - $p->purchase_price;
+                $margin = round(($laba / $p->purchase_price) * 100);
+                $labaStr = number_format($laba, 0, ',', '.');
+                $lines .= "- {$p->name}: laba Rp{$labaStr} (margin {$margin}%)\n";
+            }
+        }
+
+        $lines .= "\nRingkasan laba per kategori:\n";
         $categories = Category::withCount('products')->having('products_count', '>', 0)->get();
 
         foreach ($categories as $cat) {
-            $products = Product::where('is_active', true)
+            $catProducts = Product::where('is_active', true)
                 ->where('category_id', $cat->id)
+                ->where('purchase_price', '>', 0)
                 ->get();
 
-            if ($products->isEmpty()) continue;
+            if ($catProducts->isEmpty()) continue;
 
-            $avgPrice = $products->avg('price');
+            $avgPrice = $catProducts->avg('price');
+            $avgModal = $catProducts->avg('purchase_price');
+            $avgLaba = (int)$avgPrice - (int)$avgModal;
+            $avgMargin = $avgModal > 0 ? round(($avgLaba / $avgModal) * 100) : 0;
 
-            // Suggest margin based on average price
-            if ($avgPrice < 5000) {
-                $suggestedMargin = 50;
-            } elseif ($avgPrice < 15000) {
-                $suggestedMargin = 35;
-            } elseif ($avgPrice < 50000) {
-                $suggestedMargin = 25;
-            } else {
-                $suggestedMargin = 20;
-            }
-
-            $estimatedModal = (int)($avgPrice / (1 + $suggestedMargin / 100));
-            $lines .= "- {$cat->name}: margin rekomendasi {$suggestedMargin}%, harga jual rata-rata Rp" . number_format((int)$avgPrice, 0, ',', '.') . "\n";
+            $lines .= "- {$cat->name}: rata-rata laba Rp" . number_format($avgLaba, 0, ',', '.') . " (margin {$avgMargin}%)\n";
         }
-
-        $lines .= "\nPanduan margin:\n";
-        $lines .= "- Produk murah (< Rp5.000): margin 40-50%\n";
-        $lines .= "- Produk sedang (Rp5.000-15.000): margin 25-35%\n";
-        $lines .= "- Produk mahal (> Rp50.000): margin 15-25%\n";
-        $lines .= "- Sembako/minuman: margin 10-20%\n";
-        $lines .= "- Frozen food: margin 20-30%\n";
 
         return $lines;
     }
@@ -522,7 +524,11 @@ class DbContextService
         $lines = "Daftar produk:\n";
         foreach ($products as $p) {
             $harga = number_format($p->price, 0, ',', '.');
-            $lines .= "- {$p->name} | {$p->category->name} | Rp{$harga} | stok {$p->stock}\n";
+            $hargaBeli = number_format($p->purchase_price, 0, ',', '.');
+            $laba = $p->price - $p->purchase_price;
+            $labaStr = number_format($laba, 0, ',', '.');
+            $margin = $p->purchase_price > 0 ? round(($laba / $p->purchase_price) * 100) : 0;
+            $lines .= "- {$p->name} | {$p->category->name} | Beli: Rp{$hargaBeli} | Jual: Rp{$harga} | Laba: Rp{$labaStr} ({$margin}%) | stok {$p->stock}\n";
         }
         return $lines;
     }
@@ -558,6 +564,10 @@ class DbContextService
             ->whereDate('created_at', $today)
             ->count();
 
+        $todayLaba = OrderItem::whereHas('order', fn ($q) => $q->whereDate('created_at', $today)->where('status', 'paid'))
+            ->join('products', 'order_items.product_id', '=', 'products.id')
+            ->sum(DB::raw('(order_items.price - products.purchase_price) * order_items.quantity'));
+
         $weekTotal = Order::where('status', 'paid')
             ->whereDate('created_at', '>=', $weekStart)
             ->sum('total');
@@ -566,10 +576,16 @@ class DbContextService
             ->whereDate('created_at', '>=', $weekStart)
             ->count();
 
-        $hariIni = number_format($todayTotal, 0, ',', '.');
-        $mingguIni = number_format($weekTotal, 0, ',', '.');
+        $weekLaba = OrderItem::whereHas('order', fn ($q) => $q->whereDate('created_at', '>=', $weekStart)->where('status', 'paid'))
+            ->join('products', 'order_items.product_id', '=', 'products.id')
+            ->sum(DB::raw('(order_items.price - products.purchase_price) * order_items.quantity'));
 
-        return "Penjualan hari ini: Rp{$hariIni} ({$todayCount} transaksi)\nPenjualan minggu ini: Rp{$mingguIni} ({$weekCount} transaksi)\n";
+        $hariIni = number_format($todayTotal, 0, ',', '.');
+        $labaIni = number_format($todayLaba, 0, ',', '.');
+        $mingguIni = number_format($weekTotal, 0, ',', '.');
+        $labaMinggu = number_format($weekLaba, 0, ',', '.');
+
+        return "Penjualan hari ini: Rp{$hariIni} ({$todayCount} transaksi)\nLaba hari ini: Rp{$labaIni}\nPenjualan minggu ini: Rp{$mingguIni} ({$weekCount} transaksi)\nLaba minggu ini: Rp{$labaMinggu}\n";
     }
 
     protected function getBestSellers(): string
@@ -602,8 +618,11 @@ class DbContextService
             $words = explode(' ', $lowerName);
             if (str_contains($lowerMsg, $lowerName) || count(array_intersect(explode(' ', $lowerMsg), $words)) >= 2) {
                 $harga = number_format($p->price, 0, ',', '.');
+                $hargaBeli = number_format($p->purchase_price, 0, ',', '.');
+                $laba = $p->price - $p->purchase_price;
+                $labaStr = number_format($laba, 0, ',', '.');
                 $kategori = $p->category->name ?? '-';
-                return "Produk: {$p->name} | Kategori: {$kategori} | Harga: Rp{$harga} | Stok: {$p->stock}";
+                return "Produk: {$p->name} | Kategori: {$kategori} | Harga Beli: Rp{$hargaBeli} | Harga Jual: Rp{$harga} | Laba: Rp{$labaStr} | Stok: {$p->stock}";
             }
         }
         return null;
