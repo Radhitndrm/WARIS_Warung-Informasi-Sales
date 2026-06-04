@@ -37,9 +37,6 @@ class KasirController extends Controller
         try {
             $user = $request->user();
 
-            $lastOrder = Order::latest()->first();
-            $invoiceNo = 'INV-' . now()->format('Ymd') . '-' . str_pad(($lastOrder ? $lastOrder->id + 1 : 1), 4, '0', STR_PAD_LEFT);
-
             $total = 0;
             $orderItems = [];
 
@@ -71,10 +68,13 @@ class KasirController extends Controller
 
             $order = Order::create([
                 'user_id' => $user->id,
-                'invoice_no' => $invoiceNo,
+                'invoice_no' => 'TEMP',
                 'total' => $total,
                 'status' => $isCash ? 'paid' : 'pending',
             ]);
+
+            $invoiceNo = 'INV-' . now()->format('Ymd') . '-' . str_pad($order->id, 4, '0', STR_PAD_LEFT);
+            $order->update(['invoice_no' => $invoiceNo]);
 
             $order->items()->saveMany($orderItems);
 

@@ -19,7 +19,7 @@ Aplikasi Point of Sale (POS) berbasis web untuk warung dengan asisten AI lokal (
 
 ## ✨ Fitur Utama
 
-- **Autentikasi** — Login/register kasir dengan Laravel Fortify (2FA support)
+- **Autentikasi** — Login/register kasir dengan Laravel Fortify (2FA support, forgot/reset password via email)
 - **Manajemen Produk & Kategori** — CRUD produk dan kategori lengkap dengan stok & gambar
 - **Halaman POS** — Keranjang belanja real-time, kalkulasi total otomatis, cari produk via teks/suara
 - **Pembayaran** — Cash (hitung kembalian) dan **QRIS via Midtrans Snap** (popup pembayaran otomatis + webhook)
@@ -121,75 +121,210 @@ pos-warung/
 
 ## ⚙️ Instalasi & Menjalankan Project
 
-### Prasyarat
+### 📋 Prasyarat
 
-- PHP >= 8.3
-- Composer
-- Node.js & NPM
-- MySQL (atau SQLite untuk development)
+| Tools | Versi | Keterangan |
+|-------|-------|------------|
+| PHP | >= 8.3 | Ekstensi: `pdo`, `pdo_mysql` (atau `pdo_sqlite`), `mbstring`, `gd`, `fileinfo`, `bcmath` |
+| Composer | >= 2.x | [getcomposer.org](https://getcomposer.org) |
+| Node.js & NPM | >= 20.x | [nodejs.org](https://nodejs.org) |
+| MySQL | >= 8.0 | Atau gunakan SQLite untuk development lokal |
+| Git | >= 2.x | [git-scm.com](https://git-scm.com) |
 
-### Langkah Instalasi
-
-```bash
-# 1. Clone & masuk direktori
-git clone https://github.com/username/pos-warung.git
-cd pos-warung
-
-# 2. Install dependensi
-composer install
-npm install
-
-# 3. Environment
-cp .env.example .env
-php artisan key:generate
-
-# 4. Konfigurasi database di .env
-
-# 5. Migrasi & seeder
-php artisan migrate --seed
-
-# 6. Jalankan (server + queue + vite)
-composer run dev
-```
-
-Akses aplikasi di: `http://localhost:8000`
-
-> `composer run dev` menjalankan 4 proses sekaligus: `php artisan serve`, `queue:listen`, `pail` (logs), dan `npm run dev` via `concurrently`.
+> **Catatan**: Untuk fitur pembayaran QRIS, kamu perlu akun [Midtrans](https://midtrans.com) (Dashboard → Settings → Access Keys). Untuk AI Chatbot & Voice, lihat bagian [Setup AI Lokal](#setup-ai-lokal-wajib-untuk-chatbot--voice).
 
 ---
 
-## 🔑 Environment Variables
+### 🚀 Langkah Instalasi (Step by Step)
+
+#### 1. Clone Repository
+
+```bash
+git clone https://github.com/username/pos-warung.git
+cd pos-warung
+```
+
+#### 2. Install Dependensi Backend (PHP)
+
+```bash
+composer install
+```
+
+Jika terjadi error terkait ekstensi PHP, pastikan semua ekstensi yang dibutuhkan sudah aktif. Cek dengan:
+
+```bash
+php -m | grep -E "pdo|mbstring|gd|fileinfo|bcmath"
+```
+
+#### 3. Install Dependensi Frontend (Node.js)
+
+```bash
+npm install
+```
+
+#### 4. Setup Environment Variables
+
+Salin file `.env.example` menjadi `.env`:
+
+```bash
+cp .env.example .env
+```
+
+Generate application key:
+
+```bash
+php artisan key:generate
+```
+
+Buka `.env` dengan text editor dan sesuaikan konfigurasi berikut:
+
+**Database (pilih salah satu — SQLite atau MySQL):**
+
+- **SQLite** (rekomendasi untuk development, tanpa setup tambahan):
+  ```env
+  DB_CONNECTION=sqlite
+  # DB_HOST, DB_PORT, DB_DATABASE, DB_USERNAME, DB_PASSWORD tidak perlu diisi
+  ```
+  SQLite akan otomatis membuat file `database/database.sqlite`. Tidak perlu MySQL server.
+
+- **MySQL**:
+  ```env
+  DB_CONNECTION=mysql
+  DB_HOST=127.0.0.1
+  DB_PORT=3306
+  DB_DATABASE=pos_warung
+  DB_USERNAME=root
+  DB_PASSWORD=
+  ```
+  Pastikan database `pos_warung` sudah dibuat di MySQL:
+  ```sql
+  CREATE DATABASE pos_warung CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+  ```
+
+**Queue & Session (wajib database):**
 
 ```env
-# Database (MySQL)
-DB_CONNECTION=mysql
-DB_HOST=127.0.0.1
-DB_PORT=3306
-DB_DATABASE=pos_warung
-DB_USERNAME=root
-DB_PASSWORD=
-
-# Database (SQLite — alternatif)
-# DB_CONNECTION=sqlite
-
-# Queue & Cache (wajib database)
 QUEUE_CONNECTION=database
 CACHE_STORE=database
 SESSION_DRIVER=database
+```
 
-# Midtrans (wajib untuk pembayaran QRIS — isi key dari dashboard)
+**Mailer untuk Forgot Password** (wajib agar fitur reset password via email berfungsi):
+
+Gunakan konfigurasi SMTP Gmail atau Mailtrap untuk development:
+
+- **Gmail SMTP** (gunakan App Password):
+  ```env
+  MAIL_MAILER=smtp
+  MAIL_HOST=smtp.gmail.com
+  MAIL_PORT=587
+  MAIL_USERNAME=your-email@gmail.com
+  MAIL_PASSWORD=your-app-password
+  MAIL_ENCRYPTION=tls
+  MAIL_FROM_ADDRESS="your-email@gmail.com"
+  MAIL_FROM_NAME="${APP_NAME}"
+  ```
+  > Untuk App Password: Gmail → Settings → Security → 2-Step Verification → App passwords.
+
+- **Mailtrap** (untuk testing lokal):
+  ```env
+  MAIL_MAILER=smtp
+  MAIL_HOST=sandbox.smtp.mailtrap.io
+  MAIL_PORT=2525
+  MAIL_USERNAME=your-mailtrap-username
+  MAIL_PASSWORD=your-mailtrap-password
+  MAIL_ENCRYPTION=tls
+  MAIL_FROM_ADDRESS="noreply@poswarung.test"
+  MAIL_FROM_NAME="${APP_NAME}"
+  ```
+
+**Midtrans** (wajib untuk pembayaran QRIS):
+
+```env
 MIDTRANS_SERVER_KEY=Mid-server-xxxxxxxxxxxx
 MIDTRANS_CLIENT_KEY=Mid-client-xxxxxxxxxxxx
 MIDTRANS_IS_PRODUCTION=false
+```
 
-# Ollama (chatbot AI lokal)
+> Dapatkan key dari [Midtrans Dashboard](https://dashboard.midtrans.com) → Settings → Access Keys.
+
+**Ollama & Whisper** (opsional, untuk AI & Voice):
+
+```env
 OLLAMA_BASE_URL=http://localhost:11434
 OLLAMA_MODEL=nous-hermes:7b
-
-# Whisper (speech-to-text lokal)
-WHISPER_BINARY=/opt/homebrew/bin/whisper-cli
-WHISPER_MODEL=/path/to/ggml-tiny.bin
+# WHISPER_BINARY=/opt/homebrew/bin/whisper-cli (hanya untuk macOS)
+# WHISPER_MODEL=/path/to/ggml-tiny.bin
 ```
+
+#### 5. Jalankan Migrasi & Seeder
+
+```bash
+php artisan migrate --seed
+```
+
+Seeder akan membuat:
+- 1 akun kasir default (lihat [Akun Default](#-akun-default-seeder))
+- 5 kategori produk
+- 20 produk
+- 30 transaksi (7 hari terakhir)
+- 10 contoh chat history
+
+#### 6. Jalankan Aplikasi
+
+```bash
+composer run dev
+```
+
+> `composer run dev` menjalankan 4 proses sekaligus via [concurrently](https://github.com/open-cli-tools/concurrently):
+> - `php artisan serve` — HTTP server di port 8000
+> - `php artisan queue:listen` — Queue worker untuk Midtrans webhook
+> - `php artisan pail` — Log viewer (Laravel Pail)
+> - `npm run dev` — Vite dev server untuk TailwindCSS & Alpine.js
+
+Akses aplikasi di: **`http://localhost:8000`**
+
+---
+
+### 🔧 Setup Alternatif (Manual)
+
+Jika `composer run dev` tidak berjalan, jalankan proses berikut di terminal terpisah:
+
+| Terminal | Command | Fungsi |
+|----------|---------|--------|
+| Terminal 1 | `php artisan serve` | HTTP server |
+| Terminal 2 | `php artisan queue:listen` | Queue worker |
+| Terminal 3 | `npm run dev` | Vite (CSS & JS Hot Reload) |
+
+---
+
+### ⚠️ Troubleshooting Instalasi
+
+| Masalah | Solusi |
+|---------|--------|
+| `SQLSTATE[HY000]` Connection refused | Pastikan MySQL berjalan dan kredensial di `.env` benar |
+| `SQLSTATE[HY000]` no such table | Jalankan `php artisan migrate --seed` |
+| `Class "..." not found` | Jalankan `composer dump-autoload` |
+| `Vite manifest not found` | Jalankan `npm run dev` terlebih dahulu |
+| Midtrans popup tidak muncul | Cek `MIDTRANS_CLIENT_KEY` di `.env` dan network tab browser |
+| Email reset password tidak terkirim | Cek konfigurasi `MAIL_*` di `.env`. Gunakan Mailtrap untuk testing |
+| `openssl` / `key:generate` error | Pastikan ekstensi PHP `openssl` aktif |
+
+---
+
+## 🔑 Environment Variables Reference
+
+Seluruh variabel environment yang digunakan ada di file `.env.example`. Berikut ringkasan grup konfigurasinya:
+
+| Grup | Variabel Kunci | Wajib? | Keterangan |
+|------|---------------|--------|------------|
+| **App** | `APP_NAME`, `APP_ENV`, `APP_DEBUG`, `APP_URL` | ✅ | Konfigurasi dasar aplikasi |
+| **Database** | `DB_CONNECTION`, `DB_HOST`, `DB_PORT`, `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD` | ✅ | Gunakan `sqlite` untuk dev, `mysql` untuk production |
+| **Queue & Session** | `QUEUE_CONNECTION`, `CACHE_STORE`, `SESSION_DRIVER` | ✅ | Harus `database` agar Midtrans webhook & session berfungsi |
+| **Mail** | `MAIL_MAILER`, `MAIL_HOST`, `MAIL_PORT`, `MAIL_ENCRYPTION`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_FROM_ADDRESS` | ✅ | Diperlukan untuk **forgot/reset password** via email |
+| **Midtrans** | `MIDTRANS_SERVER_KEY`, `MIDTRANS_CLIENT_KEY`, `MIDTRANS_IS_PRODUCTION` | ⚠️ | Wajib jika menggunakan pembayaran QRIS |
+| **Ollama** | `OLLAMA_BASE_URL`, `OLLAMA_MODEL` | ⚠️ | Wajib untuk chatbot AI |
+| **Whisper** | `WHISPER_BINARY`, `WHISPER_MODEL` | ❌ | Opsional, untuk voice input (fallback dari browser STT) |
 
 ### Setup AI Lokal (wajib untuk chatbot & voice)
 
