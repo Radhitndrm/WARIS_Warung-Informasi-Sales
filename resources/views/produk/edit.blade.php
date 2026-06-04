@@ -53,17 +53,31 @@
                 @enderror
             </div>
 
-            <div class="mb-6">
-                <label for="price" class="block text-sm font-semibold text-gray-700 mb-1.5">Harga</label>
-                <input type="number" id="price" name="price" value="{{ old('price', $product->price) }}" required
-                    class="w-full px-4 py-3 bg-white border border-[#8C8A75]/60 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-sidebar/40 focus:border-sidebar/50 placeholder:text-gray-400 transition-colors"
-                    placeholder="Masukkan harga produk">
-                @error('price')
-                <p class="mt-1.5 text-xs text-red-600 font-medium flex items-center gap-1">
-                    <i class="fa-solid fa-circle-exclamation"></i>
-                    {{ $message }}
-                </p>
-                @enderror
+            <div class="grid grid-cols-2 gap-4 mb-6">
+                <div>
+                    <label for="purchase_price" class="block text-sm font-semibold text-gray-700 mb-1.5">Harga Beli</label>
+                    <input type="number" id="purchase_price" name="purchase_price" value="{{ old('purchase_price', $product->purchase_price) }}" required
+                        class="w-full px-4 py-3 bg-white border border-[#8C8A75]/60 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-sidebar/40 focus:border-sidebar/50 placeholder:text-gray-400 transition-colors"
+                        placeholder="Harga beli (modal)">
+                    @error('purchase_price')
+                    <p class="mt-1.5 text-xs text-red-600 font-medium flex items-center gap-1">
+                        <i class="fa-solid fa-circle-exclamation"></i>
+                        {{ $message }}
+                    </p>
+                    @enderror
+                </div>
+                <div>
+                    <label for="price" class="block text-sm font-semibold text-gray-700 mb-1.5">Harga Jual</label>
+                    <input type="number" id="price" name="price" value="{{ old('price', $product->price) }}" required
+                        class="w-full px-4 py-3 bg-white border border-[#8C8A75]/60 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-sidebar/40 focus:border-sidebar/50 placeholder:text-gray-400 transition-colors"
+                        placeholder="Masukkan harga jual">
+                    @error('price')
+                    <p class="mt-1.5 text-xs text-red-600 font-medium flex items-center gap-1">
+                        <i class="fa-solid fa-circle-exclamation"></i>
+                        {{ $message }}
+                    </p>
+                    @enderror
+                </div>
             </div>
 
             <div class="mb-6">

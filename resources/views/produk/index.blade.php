@@ -33,12 +33,14 @@
         <table class="w-full">
             <thead>
                 <tr class="border-b border-[#8C8A75]/30">
-                    <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-20">No</th>
-                    <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Nama Produk</th>
-                    <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Kategori</th>
-                    <th class="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Harga</th>
-                    <th class="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider w-20">Stok</th>
-                    <th class="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider w-56">Aksi</th>
+                    <th class="px-4 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-12">No</th>
+                    <th class="px-4 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Nama Produk</th>
+                    <th class="px-4 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Kategori</th>
+                    <th class="px-4 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Harga Beli</th>
+                    <th class="px-4 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Harga Jual</th>
+                    <th class="px-4 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider w-20">Laba</th>
+                    <th class="px-4 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider w-16">Stok</th>
+                    <th class="px-4 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider w-48">Aksi</th>
                 </tr>
             </thead>
             <tbody x-data="{
@@ -54,8 +56,8 @@
             }" @live-search.window="query = $event.detail || ''">
                 <template x-for="(product, index) in filtered" :key="product.id">
                 <tr class="hover:bg-[#E6E4CE]/40 transition-colors">
-                    <td class="px-6 py-4 text-sm text-gray-500 font-medium" x-text="index + 1"></td>
-                    <td class="px-6 py-4">
+                    <td class="px-4 py-3 text-sm text-gray-500 font-medium" x-text="index + 1"></td>
+                    <td class="px-4 py-3">
                         <div class="flex items-center gap-3">
                             <template x-if="product.image_url">
                                 <img :src="product.image_url" :alt="product.name"
@@ -72,28 +74,35 @@
                             </div>
                         </div>
                     </td>
-                    <td class="px-6 py-4 text-sm text-gray-600">
+                    <td class="px-4 py-3 text-sm text-gray-600">
                         <span class="inline-flex items-center gap-1.5 bg-[#BFDCDE] text-gray-800 text-xs font-bold px-3 py-1.5 rounded-full">
                             <i class="fa-solid fa-tag"></i>
                             <span x-text="product.category?.name ?? '-'"></span>
                         </span>
                     </td>
-                    <td class="px-6 py-4 text-center text-sm font-semibold text-gray-800" x-text="'Rp ' + Number(product.price).toLocaleString('id-ID')"></td>
-                    <td class="px-6 py-4 text-center">
+                    <td class="px-4 py-3 text-center text-sm font-semibold text-gray-600" x-text="'Rp ' + Number(product.purchase_price).toLocaleString('id-ID')"></td>
+                    <td class="px-4 py-3 text-center text-sm font-semibold text-gray-800" x-text="'Rp ' + Number(product.price).toLocaleString('id-ID')"></td>
+                    <td class="px-4 py-3 text-center">
+                        <span class="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1.5 rounded-full"
+                            :class="(product.price - product.purchase_price) >= 0 ? 'bg-[#C1F2D0] text-green-700' : 'bg-[#F7CDCD] text-red-700'"
+                            x-text="'Rp ' + Number(product.price - product.purchase_price).toLocaleString('id-ID')">
+                        </span>
+                    </td>
+                    <td class="px-4 py-3 text-center">
                         <span class="inline-flex items-center justify-center text-xs font-bold px-3 py-1.5 rounded-full min-w-[32px]"
                             :class="product.stock <= 5 ? 'bg-[#F7CDCD] text-red-700' : 'bg-[#C1F2D0] text-green-700'"
                             x-text="product.stock">
                         </span>
                     </td>
-                    <td class="px-6 py-4">
+                    <td class="px-4 py-3">
                         <div class="flex items-center justify-center gap-2">
                             <a :href="`/produk/${product.id}/edit`"
-                                class="inline-flex items-center gap-1.5 bg-[#BFDCDE] text-gray-800 px-4 py-2 rounded-lg text-xs font-bold hover:bg-[#A8C8CA] transition-colors">
+                                class="inline-flex items-center gap-1.5 bg-[#BFDCDE] text-gray-800 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-[#A8C8CA] transition-colors">
                                 <i class="fa-solid fa-pen-to-square"></i>
                                 Edit
                             </a>
                             <button @click="$dispatch('open-modal', 'delete-' + product.id)"
-                                class="inline-flex items-center gap-1.5 bg-[#F7CDCD] text-gray-800 px-4 py-2 rounded-lg text-xs font-bold hover:bg-[#E8B8B8] transition-colors">
+                                class="inline-flex items-center gap-1.5 bg-[#F7CDCD] text-gray-800 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-[#E8B8B8] transition-colors">
                                 <i class="fa-solid fa-trash-can"></i>
                                 Hapus
                             </button>
@@ -102,7 +111,7 @@
                 </tr>
                 </template>
                 <tr x-show="filtered.length === 0">
-                    <td colspan="6" class="px-6 py-16 text-center text-gray-400">
+                    <td colspan="8" class="px-6 py-16 text-center text-gray-400">
                         <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-200 flex items-center justify-center">
                             <i class="fa-solid fa-box-open text-2xl text-gray-300"></i>
                         </div>

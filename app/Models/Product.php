@@ -12,10 +12,10 @@ class Product extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['category_id', 'name', 'price', 'stock', 'image', 'is_active'];
+    protected $fillable = ['category_id', 'name', 'price', 'purchase_price', 'stock', 'image', 'is_active'];
 
-    protected $appends = ['image_url'];
-    protected $casts = ['is_active' => 'boolean'];
+    protected $appends = ['image_url', 'profit'];
+    protected $casts = ['is_active' => 'boolean', 'price' => 'integer', 'purchase_price' => 'integer'];
 
     public function category(): BelongsTo
     {
@@ -30,5 +30,10 @@ class Product extends Model
     public function imageUrl(): Attribute
     {
         return Attribute::get(fn () => $this->image ? '/storage/' . $this->image : null);
+    }
+
+    public function profit(): Attribute
+    {
+        return Attribute::get(fn () => $this->price - $this->purchase_price);
     }
 }
