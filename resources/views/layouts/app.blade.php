@@ -10,17 +10,26 @@
     @stack('head')
 </head>
 
-<body class="bg-cream min-h-screen">
+<body class="bg-cream min-h-screen" x-data="{ sidebarOpen: false }">
+
+    {{-- Mobile sidebar overlay --}}
+    <div x-show="sidebarOpen" @click="sidebarOpen = false" x-cloak
+        x-transition:enter="transition-opacity duration-300"
+        x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+        x-transition:leave="transition-opacity duration-200"
+        x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
+        class="fixed inset-0 bg-black/40 z-40 lg:hidden">
+    </div>
 
     <div class="flex min-h-screen">
 
         <x-sidebar />
 
-        <div class="flex flex-col flex-1 min-w-0">
+        <div class="flex flex-col flex-1 min-w-0 lg:pl-0">
 
             <x-header />
 
-            <main class="flex-1 p-6 overflow-y-auto">
+            <main class="flex-1 p-4 md:p-6 overflow-y-auto">
                 @yield('content')
             </main>
 
@@ -37,7 +46,7 @@
             x-transition:leave="transition-all duration-200 ease-in"
             x-transition:leave-start="opacity-100 translate-y-0 scale-100"
             x-transition:leave-end="opacity-0 translate-y-4 scale-95"
-            class="fixed bottom-20 right-6 w-80 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden flex flex-col"
+            class="fixed bottom-20 right-4 md:right-6 w-[calc(100vw-2rem)] max-w-sm bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden flex flex-col"
             style="max-height: 520px; z-index: 60;">
             <div class="bg-primary px-4 py-3 flex items-center justify-between">
                 <div class="flex items-center gap-2">
@@ -86,7 +95,7 @@
         </div>
 
         <button @click="open = !open"
-            class="fixed bottom-4 right-6 z-50 w-12 h-12 rounded-full bg-primary text-white shadow-lg hover:bg-primary/90 transition-all duration-200 flex items-center justify-center"
+            class="fixed bottom-4 right-4 md:right-6 z-50 w-12 h-12 rounded-full bg-primary text-white shadow-lg hover:bg-primary/90 transition-all duration-200 flex items-center justify-center"
             :class="{ 'rotate-45': open }">
             <svg x-show="!open" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />

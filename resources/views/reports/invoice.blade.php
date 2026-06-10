@@ -8,7 +8,7 @@
 
 @section('content')
 
-<div class="space-y-6 max-w-3xl mx-auto">
+<div class="space-y-4 md:space-y-6 max-w-3xl mx-auto">
 
     <div class="flex items-center justify-between">
         <div>
@@ -25,7 +25,7 @@
     </div>
 
     {{-- Status & Method --}}
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div class="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
             <p class="text-xs font-medium text-muted mb-1">Status</p>
             @if($order->status === 'paid')
@@ -85,7 +85,7 @@
         <h3 class="text-sm font-bold text-amber-800 mb-3 flex items-center gap-2">
             <i class="fa-solid fa-file-invoice-dollar"></i> Informasi Utang
         </h3>
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-sm">
             <div>
                 <p class="text-xs text-amber-600">Pelanggan</p>
                 <p class="font-semibold text-amber-900">{{ $order->debt->customer_name }}</p>
@@ -167,7 +167,8 @@
         <div class="px-5 py-4 border-b border-gray-100">
             <h3 class="text-sm font-bold text-primary">Item Pembelian</h3>
         </div>
-        <table class="w-full text-sm">
+        <div class="overflow-x-auto">
+        <table class="w-full min-w-[500px] text-sm">
             <thead class="text-xs text-muted bg-gray-50 border-b border-gray-100">
                 <tr>
                     <th class="px-5 py-3 text-left font-medium">Produk</th>
@@ -199,6 +200,7 @@
                 @endif
             </tfoot>
         </table>
+        </div>
     </div>
 
 </div>

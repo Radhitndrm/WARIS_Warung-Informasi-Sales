@@ -16,7 +16,7 @@
         </div>
     </div>
 
-    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4">
         <div class="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
             <div class="flex items-center gap-3">
                 <div class="w-11 h-11 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-600 shrink-0">
@@ -115,7 +115,7 @@
     </div>
     @endif
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
         <div class="lg:col-span-2 bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
             <div class="flex items-center justify-between mb-4">
                 <h3 class="text-base font-bold text-primary">Grafik Penjualan (7 Hari)</h3>

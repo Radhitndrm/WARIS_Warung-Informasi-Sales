@@ -6,7 +6,7 @@
 
 <div class="min-h-screen flex items-center justify-center">
 
-    <div class="bg-[#F5F4EF] w-[420px] rounded-2xl px-10 py-12 relative shadow-md">
+    <div class="bg-[#F5F4EF] w-full max-w-[420px] mx-4 rounded-2xl px-6 sm:px-10 py-10 sm:py-12 relative shadow-md">
 
         <div class="absolute -top-5 left-1/2 -translate-x-1/2 bg-[#E4DFB5] px-10 py-2 rounded-xl">
             <h1 class="text-2xl font-bold text-[#394766]">

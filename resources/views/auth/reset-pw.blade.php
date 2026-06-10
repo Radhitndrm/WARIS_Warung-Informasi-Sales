@@ -7,7 +7,7 @@
 <div class="min-h-screen flex items-center justify-center">
 
     {{-- Styling card diseragamkan dengan halaman auth lainnya --}}
-    <div class="bg-[#F5F4EF] w-[420px] rounded-2xl px-10 py-12 shadow-md">
+    <div class="bg-[#F5F4EF] w-full max-w-[420px] mx-4 rounded-2xl px-6 sm:px-10 py-10 sm:py-12 shadow-md">
 
         <h1 class="text-3xl font-bold text-center text-[#394766] mb-8">
             Reset Password

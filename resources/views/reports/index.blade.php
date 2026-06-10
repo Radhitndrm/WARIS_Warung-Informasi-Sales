@@ -18,7 +18,7 @@
     </div>
 
     {{-- Stat Cards --}}
-    <div class="grid grid-cols-2 xl:grid-cols-4 gap-4">
+    <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
         @php
         $cardConfig = [
             'bag'    => ['bg' => 'bg-blue-100',   'icon_bg' => 'bg-blue-500',   'icon' => 'fa-bag-shopping'],
@@ -113,7 +113,8 @@
 
     {{-- Tabel Transaksi --}}
     <div class="bg-[#F4F2DE] rounded-2xl border border-[#8C8A75] shadow-sm overflow-hidden">
-        <table class="w-full">
+        <div class="overflow-x-auto">
+        <table class="w-full min-w-[700px]">
             <thead>
                 <tr class="border-b border-[#8C8A75]/30">
                     <th class="px-5 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-12">No.</th>
@@ -209,6 +210,7 @@
                 @endforelse
             </tbody>
         </table>
+        </div>
 
         @if($orders->hasPages())
         <div class="px-5 py-4 border-t border-[#8C8A75]/20 flex items-center justify-between">
@@ -251,7 +253,7 @@
     </div>
 
     {{-- Bottom Section: Ringkasan + Export --}}
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5">
 
         {{-- Ringkasan Metode Pembayaran --}}
         <div class="bg-[#F4F2DE] rounded-2xl border border-[#8C8A75] shadow-sm p-5">
