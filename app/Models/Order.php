@@ -28,4 +28,9 @@ class Order extends Model
     {
         return $this->hasOne(Payment::class);
     }
+
+    public function debt(): HasOne
+    {
+        return $this->hasOne(Debt::class);
+    }
 }

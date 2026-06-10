@@ -3,6 +3,7 @@
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\ChatbotController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DebtController;
 use App\Http\Controllers\KasirController;
 use App\Http\Controllers\PaymentNotificationController;
 use App\Http\Controllers\ProductController;
@@ -45,6 +46,13 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/riwayat', [ReportController::class, 'index'])->name('riwayat');
     Route::get('/riwayat/export/pdf', [ReportController::class, 'exportPdf'])->name('riwayat.export.pdf');
     Route::get('/riwayat/export/excel', [ReportController::class, 'exportExcel'])->name('riwayat.export.excel');
+
+    // Utang
+    Route::get('/utang', [DebtController::class, 'index'])->name('utang');
+    Route::get('/utang/{debt}', [DebtController::class, 'show'])->name('utang.show');
+    Route::post('/utang/{debt}/bayar', [DebtController::class, 'storePayment'])->name('utang.bayar');
+    Route::post('/utang/{debt}/payment-callback', [DebtController::class, 'paymentCallback'])->name('utang.payment-callback');
+    Route::post('/utang/{debt}/payment-cancel', [DebtController::class, 'cancelPayment'])->name('utang.payment-cancel');
 
     Route::prefix('/chatbot')->name('chatbot.')->group(function () {
         Route::get('/', [ChatbotController::class, 'index'])->name('index');

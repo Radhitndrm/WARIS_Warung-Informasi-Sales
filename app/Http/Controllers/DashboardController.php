@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Debt;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
@@ -40,6 +41,9 @@ class DashboardController extends Controller
         $produkStokMenipis = Product::where('stock', '<=', 5)->orderBy('stock')->get();
 
         $stokMenipis = $produkStokMenipis->count();
+
+        $totalUtangAktif = Debt::where('status', 'active')->sum('remaining_amount');
+        $jumlahUtangAktif = Debt::where('status', 'active')->count();
 
         $labaHariIni = OrderItem::whereHas('order', fn ($q) => $q->whereDate('created_at', today())->where('status', 'paid'))
             ->join('products', 'order_items.product_id', '=', 'products.id')
@@ -81,6 +85,8 @@ class DashboardController extends Controller
             'labaHariIni',
             'labaGrowth',
             'labaChartData',
+            'totalUtangAktif',
+            'jumlahUtangAktif',
         ));
     }
 }
