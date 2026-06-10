@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Category;
+use App\Models\Debt;
 use App\Models\Product;
 use App\Models\Order;
 use App\Models\OrderItem;
@@ -102,6 +103,16 @@ class DbContextService
             str_contains($lower, 'modal') || str_contains($lower, 'profit')
         ) {
             $ctx .= "\n" . $this->getMarginRecommendation($message);
+        }
+
+        // Utang / debt
+        if (
+            str_contains($lower, 'utang') || str_contains($lower, 'hutang') ||
+            str_contains($lower, 'debt') || str_contains($lower, 'cicil') ||
+            str_contains($lower, 'angsuran') || str_contains($lower, 'kredit') ||
+            str_contains($lower, 'pelunasan') || str_contains($lower, 'lunas')
+        ) {
+            $ctx .= "\n" . $this->getDebtsInfo($message);
         }
 
         return $ctx;
@@ -486,6 +497,139 @@ class DbContextService
         return $lines;
     }
 
+    // ==================== UTANG ====================
+
+    protected function getDebtsInfo(string $message): string
+    {
+        $lower = strtolower($message);
+        $lines = "INFORMASI UTANG:\n";
+
+        $activeDebts = Debt::with(['order', 'payments' => fn($q) => $q->where('status', 'success')])
+            ->where('status', 'active')
+            ->latest()
+            ->get();
+
+        $paidDebts = Debt::where('status', 'paid')->count();
+
+        if ($activeDebts->isEmpty()) {
+            $lines .= "Tidak ada utang aktif.\n";
+            if ($paidDebts > 0) {
+                $lines .= "Total {$paidDebts} utang sudah dilunasi.\n";
+            }
+            return $lines;
+        }
+
+        $totalUtang = $activeDebts->sum('remaining_amount');
+        $totalPiutang = $activeDebts->sum('total_amount');
+        $totalDibayar = $activeDebts->sum('paid_amount');
+
+        $lines .= "\nRingkasan:\n";
+        $lines .= "Utang aktif: {$activeDebts->count()} pelanggan\n";
+        $lines .= "Total piutang: Rp" . number_format($totalPiutang, 0, ',', '.') . "\n";
+        $lines .= "Total dibayar: Rp" . number_format($totalDibayar, 0, ',', '.') . "\n";
+        $lines .= "Sisa utang: Rp" . number_format($totalUtang, 0, ',', '.') . "\n";
+
+        if ($paidDebts > 0) {
+            $lines .= "Utang lunas: {$paidDebts}\n";
+        }
+
+        // Show individual debts
+        if (
+            str_contains($lower, 'daftar') || str_contains($lower, 'semua') ||
+            str_contains($lower, 'list') || !str_contains($lower, 'pelanggan')
+        ) {
+            $lines .= "\nDaftar utang aktif:\n";
+            foreach ($activeDebts as $d) {
+                $sisa = number_format($d->remaining_amount, 0, ',', '.');
+                $total = number_format($d->total_amount, 0, ',', '.');
+                $bayar = number_format($d->paid_amount, 0, ',', '.');
+                $percent = round(($d->paid_amount / $d->total_amount) * 100);
+                $lines .= "- {$d->customer_name} ({$d->customer_phone}): Rp{$sisa}/Rp{$total} ({$percent}% dibayar, ";
+                $lines .= "Invoice: {$d->order->invoice_no}, ";
+                $tanggal = $d->created_at->format('d/m/Y');
+                $lines .= "sejak {$tanggal})\n";
+
+                // Show recent payments
+                if ($d->payments->isNotEmpty()) {
+                    $lastPayment = $d->payments->sortByDesc('created_at')->first();
+                    $lines .= "  Pembayaran terakhir: Rp" . number_format($lastPayment->amount, 0, ',', '.') . " ({$lastPayment->method}) pada {$lastPayment->created_at->format('d/m/Y')}\n";
+                }
+            }
+        }
+
+        // Specific customer search
+        $customerName = $this->findCustomerName($message);
+        if ($customerName) {
+            $matchingDebts = Debt::where('status', 'active')
+                ->where('customer_name', 'like', "%{$customerName}%")
+                ->get();
+
+            if ($matchingDebts->isNotEmpty()) {
+                $lines .= "\nDetail utang {$customerName}:\n";
+                foreach ($matchingDebts as $d) {
+                    $lines .= "- Total: Rp" . number_format($d->total_amount, 0, ',', '.') . "\n";
+                    $lines .= "  Dibayar: Rp" . number_format($d->paid_amount, 0, ',', '.') . "\n";
+                    $lines .= "  Sisa: Rp" . number_format($d->remaining_amount, 0, ',', '.') . "\n";
+                    $lines .= "  Telp: {$d->customer_phone}\n";
+                    $lines .= "  Invoice: {$d->order->invoice_no}\n";
+
+                    if ($d->payments->isNotEmpty()) {
+                        $lines .= "  Riwayat pembayaran:\n";
+                        foreach ($d->payments->sortByDesc('created_at')->take(5) as $p) {
+                            $lines .= "  - " . $p->created_at->format('d/m/Y H:i') . ": Rp" . number_format($p->amount, 0, ',', '.') . " ({$p->method})\n";
+                        }
+                    }
+                }
+            }
+        }
+
+        // Overdue / aging info
+        if (str_contains($lower, 'lama') || str_contains($lower, 'telat') || str_contains($lower, 'jatu')) {
+            $lines .= "\nAnalisis umur utang:\n";
+            foreach ($activeDebts as $d) {
+                $daysAgo = $d->created_at->diffInDays(now());
+                $lines .= "- {$d->customer_name}: {$daysAgo} hari";
+                if ($daysAgo > 30) {
+                    $lines .= " (PERLU PENAGIHAN!)";
+                }
+                $lines .= "\n";
+            }
+        }
+
+        // Customers needing collection
+        if (str_contains($lower, 'tagih') || str_contains($lower, 'prioritas')) {
+            $lines .= "\nUtang yang perlu segera ditagih:\n";
+            $overdue = $activeDebts->filter(fn($d) => $d->created_at->diffInDays(now()) > 30);
+            if ($overdue->isNotEmpty()) {
+                foreach ($overdue as $d) {
+                    $lines .= "- {$d->customer_name} ({$d->customer_phone}): Rp" . number_format($d->remaining_amount, 0, ',', '.') . " (jatuh tempo >30 hari)\n";
+                }
+            } else {
+                $lines .= "Semua utang masih dalam batas wajar (<30 hari).\n";
+            }
+        }
+
+        $lines .= "\nTips: Gunakan halaman Utang untuk mengelola pembayaran. Pelanggan bisa mencicil via Tunai atau QRIS.\n";
+
+        return $lines;
+    }
+
+    protected function findCustomerName(string $message): ?string
+    {
+        $customers = Debt::where('status', 'active')
+            ->pluck('customer_name')
+            ->unique();
+
+        $lowerMsg = strtolower($message);
+        foreach ($customers as $name) {
+            if (str_contains($lowerMsg, strtolower($name))) {
+                return $name;
+            }
+        }
+
+        return null;
+    }
+
     // ==================== EXISTING METHODS ====================
 
     protected function getBasicInfo(): string
@@ -564,7 +708,7 @@ class DbContextService
             ->whereDate('created_at', $today)
             ->count();
 
-        $todayLaba = OrderItem::whereHas('order', fn ($q) => $q->whereDate('created_at', $today)->where('status', 'paid'))
+        $todayLaba = OrderItem::whereHas('order', fn($q) => $q->whereDate('created_at', $today)->where('status', 'paid'))
             ->join('products', 'order_items.product_id', '=', 'products.id')
             ->sum(DB::raw('(order_items.price - products.purchase_price) * order_items.quantity'));
 
@@ -576,7 +720,7 @@ class DbContextService
             ->whereDate('created_at', '>=', $weekStart)
             ->count();
 
-        $weekLaba = OrderItem::whereHas('order', fn ($q) => $q->whereDate('created_at', '>=', $weekStart)->where('status', 'paid'))
+        $weekLaba = OrderItem::whereHas('order', fn($q) => $q->whereDate('created_at', '>=', $weekStart)->where('status', 'paid'))
             ->join('products', 'order_items.product_id', '=', 'products.id')
             ->sum(DB::raw('(order_items.price - products.purchase_price) * order_items.quantity'));
 
@@ -591,7 +735,7 @@ class DbContextService
     protected function getBestSellers(): string
     {
         $bestSellers = OrderItem::select('product_id', DB::raw('SUM(quantity) as total_qty'))
-            ->whereHas('order', fn ($q) => $q->where('status', 'paid'))
+            ->whereHas('order', fn($q) => $q->where('status', 'paid'))
             ->groupBy('product_id')
             ->orderByDesc('total_qty')
             ->take(5)

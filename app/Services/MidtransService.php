@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Debt;
 use App\Models\Order;
 use Midtrans\Config;
 use Midtrans\Snap;
@@ -37,6 +38,30 @@ class MidtransService
                     'name' => $item->product->name,
                 ];
             })->toArray(),
+        ];
+
+        return Snap::createTransaction($params);
+    }
+
+    public function createDebtTransaction(Debt $debt, int $amount, string $orderId): object
+    {
+        $params = [
+            'transaction_details' => [
+                'order_id' => $orderId,
+                'gross_amount' => $amount,
+            ],
+            'customer_details' => [
+                'first_name' => $debt->customer_name,
+                'phone' => $debt->customer_phone,
+            ],
+            'item_details' => [
+                [
+                    'id' => 'DEBT-' . $debt->id,
+                    'price' => $amount,
+                    'quantity' => 1,
+                    'name' => 'Pembayaran Utang #' . $debt->id . ' - ' . $debt->customer_name,
+                ],
+            ],
         ];
 
         return Snap::createTransaction($params);

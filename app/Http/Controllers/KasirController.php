@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Category;
+use App\Models\Debt;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Payment;
@@ -28,8 +29,10 @@ class KasirController extends Controller
             'items' => 'required|array|min:1',
             'items.*.product_id' => 'required|exists:products,id',
             'items.*.quantity' => 'required|integer|min:1',
-            'payment_method' => 'required|in:cash,qris',
+            'payment_method' => 'required|in:cash,qris,debt',
             'amount_paid' => 'required_if:payment_method,cash|integer|min:0',
+            'customer_name' => 'required_if:payment_method,debt|string|max:255',
+            'customer_phone' => 'required_if:payment_method,debt|string|max:20',
         ]);
 
         DB::beginTransaction();
@@ -65,12 +68,13 @@ class KasirController extends Controller
             }
 
             $isCash = $validated['payment_method'] === 'cash';
+            $isDebt = $validated['payment_method'] === 'debt';
 
             $order = Order::create([
                 'user_id' => $user->id,
                 'invoice_no' => 'TEMP',
                 'total' => $total,
-                'status' => $isCash ? 'paid' : 'pending',
+                'status' => $isCash ? 'paid' : ($isDebt ? 'debt' : 'pending'),
             ]);
 
             $invoiceNo = 'INV-' . now()->format('Ymd') . '-' . str_pad($order->id, 4, '0', STR_PAD_LEFT);
@@ -101,6 +105,42 @@ class KasirController extends Controller
                         'total' => $order->total,
                         'change_amount' => $changeAmount,
                         'payment_method' => 'cash',
+                        'items' => collect($orderItems)->map(fn ($item) => [
+                            'product' => $item->product->name,
+                            'quantity' => $item->quantity,
+                            'price' => $item->price,
+                            'subtotal' => $item->subtotal,
+                        ]),
+                        'created_at' => $order->created_at->format('d/m/Y H:i'),
+                    ],
+                ]);
+            }
+
+            if ($isDebt) {
+                $debt = Debt::create([
+                    'order_id' => $order->id,
+                    'customer_name' => $validated['customer_name'],
+                    'customer_phone' => $validated['customer_phone'],
+                    'total_amount' => $total,
+                    'paid_amount' => 0,
+                    'remaining_amount' => $total,
+                    'status' => 'active',
+                ]);
+
+                DB::commit();
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Transaksi utang berhasil',
+                    'order' => [
+                        'id' => $order->id,
+                        'invoice_no' => $order->invoice_no,
+                        'total' => $order->total,
+                        'change_amount' => 0,
+                        'payment_method' => 'debt',
+                        'debt_id' => $debt->id,
+                        'customer_name' => $debt->customer_name,
+                        'customer_phone' => $debt->customer_phone,
                         'items' => collect($orderItems)->map(fn ($item) => [
                             'product' => $item->product->name,
                             'quantity' => $item->quantity,
@@ -219,8 +259,8 @@ class KasirController extends Controller
             'id' => $order->id,
             'invoice_no' => $order->invoice_no,
             'total' => $order->total,
-            'change_amount' => $order->payment->change_amount,
-            'payment_method' => $order->payment->method,
+            'change_amount' => $order->payment->change_amount ?? 0,
+            'payment_method' => $order->payment->method ?? 'unknown',
             'items' => $order->items->map(fn ($item) => [
                 'product' => $item->product->name,
                 'quantity' => $item->quantity,
