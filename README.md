@@ -9,7 +9,7 @@ Aplikasi Point of Sale (POS) berbasis web untuk warung dengan asisten AI lokal (
 
 | No | Nama | Jobdesk |
 |----|------|---------|
-| 1 | Radhitya Andromeda Barito | PM + Chatbot AI + Pembayaran + STT |
+| 1 | Radhitya Andromeda Barito | PM + Chatbot AI + Pembayaran + STT + Utang |
 | 2 | Aisha Hannah Heriawan | UI/UX Designer (Figma) |
 | 3 | Dzilal Waliyurrahman | Auth + Laporan |
 | 4 | M. Abi Rangga | Manajemen Produk & Kategori |
@@ -22,7 +22,8 @@ Aplikasi Point of Sale (POS) berbasis web untuk warung dengan asisten AI lokal (
 - **Autentikasi** — Login/register kasir dengan Laravel Fortify (2FA support, forgot/reset password via email)
 - **Manajemen Produk & Kategori** — CRUD produk dan kategori lengkap dengan stok & gambar
 - **Halaman POS** — Keranjang belanja real-time, kalkulasi total otomatis, cari produk via teks/suara
-- **Pembayaran** — Cash (hitung kembalian) dan **QRIS via Midtrans Snap** (popup pembayaran otomatis + webhook)
+- **Pembayaran** — Cash (hitung kembalian), **QRIS via Midtrans Snap** (popup pembayaran otomatis + webhook), dan **Utang** (beli sekarang bayar nanti)
+- **Manajemen Utang** — Catat transaksi utang dengan data pelanggan, cicil via Tunai/QRIS, pantau status pelunasan, progress bar, riwayat pembayaran
 - **Dashboard** — Ringkasan penjualan harian, grafik 7 hari (Chart.js), notifikasi stok rendah
 - **Riwayat** — Daftar transaksi dengan filter (tanggal, metode, status), grafik ringkasan, export PDF & Excel, detail transaksi
 - **Live Search** — Pencarian real-time client-side di halaman Produk & Kategori, header search terintegrasi dengan filter Riwayat
@@ -57,6 +58,7 @@ pos-warung/
 │   │   └── Controllers/
 │   │       ├── DashboardController.php
 │       │   ├── KasirController.php              # POS + checkout (cash+midtrans snap)
+│       │   ├── DebtController.php               # Manajemen utang
 │       │   ├── PaymentNotificationController.php # Midtrans webhook handler
 │       │   ├── CategoryController.php
 │       │   ├── ProductController.php
@@ -69,6 +71,8 @@ pos-warung/
 │   │   ├── Order.php
 │   │   ├── OrderItem.php
 │   │   ├── Payment.php
+│   │   ├── Debt.php
+│   │   ├── DebtPayment.php
 │   │   └── ChatHistory.php
 │   ├── Providers/
 │   │   ├── AppServiceProvider.php
@@ -80,7 +84,7 @@ pos-warung/
 │       └── DbContextService.php      # Konteks database utk AI
 ├── database/
 │   ├── factories/                    # UserFactory, CategoryFactory, ProductFactory, ChatHistoryFactory
-│   ├── migrations/                   # 10 migration (users, cache, jobs, 2FA, categories, products, orders, order_items, payments, chat_histories)
+│   ├── migrations/                   # 13 migration (users, cache, jobs, 2FA, categories, products, orders, order_items, payments, chat_histories, debts, debt_payments, alter orders)
 │   └── seeders/                      # DatabaseSeeder, UserSeeder, CategorySeeder, ProductSeeder, OrderSeeder, ChatHistorySeeder
 ├── resources/
 │   └── views/
@@ -92,7 +96,8 @@ pos-warung/
 │       ├── produk/                   # index, create, edit
 │       ├── kategori/                 # index, create, edit
 │       ├── chatbot/                  # Full chatbot page
-│       └── reports/                  # Riwayat transaksi (index, export PDF)
+│       ├── reports/                  # Riwayat transaksi (index, export PDF)
+│       └── utang/                    # Manajemen utang (index, detail + bayar)
 ├── routes/
 │   ├── web.php
 │   └── console.php
@@ -115,6 +120,8 @@ pos-warung/
 | `orders` | Header transaksi (invoice, total, status) |
 | `order_items` | Detail item per transaksi |
 | `payments` | Data pembayaran (cash / qris, kembalian) |
+| `debts` | Data utang pelanggan (nama, telp, total, dibayar, sisa) |
+| `debt_payments` | Riwayat cicilan utang (tunai / qris) |
 | `chat_histories` | Riwayat percakapan dengan chatbot AI |
 
 ---
@@ -358,10 +365,12 @@ Login
         ├── Manajemen Produk → tambah / edit / hapus produk
         ├── Manajemen Kategori → tambah / edit / hapus kategori
         ├── Halaman POS → cari produk (teks/suara) → keranjang → bayar
-        │     ├── Cash → input nominal → hitung kembalian → selesai
-        │     └── QRIS → popup Midtrans Snap → bayar via QRIS/credit card → konfirmasi otomatis
-        ├── Riwayat → daftar transaksi + filter + export PDF/Excel
-        └── Chatbot AI → tanya stok/harga, rekomendasi, analisis penjualan, voice input
+│     ├── Cash → input nominal → hitung kembalian → selesai
+│     ├── QRIS → popup Midtrans Snap → bayar via QRIS/credit card → konfirmasi otomatis
+│     └── Utang → input nama & telp pelanggan → transaksi tercatat utang
+├── Manajemen Utang → pantau status utang → cicil via Tunai/QRIS → lunas
+├── Riwayat → daftar transaksi + filter + export PDF/Excel
+└── Chatbot AI → tanya stok/harga, rekomendasi, analisis penjualan, pantau utang, voice input
 ```
 
 ---
@@ -395,6 +404,7 @@ Login
 - Riwayat: filter (tanggal, metode, status, pencarian), grafik ringkasan, export PDF & Excel, detail transaksi
 - Live search client-side di Produk & Kategori via header search bar
 - Header search terintegrasi dengan form filter halaman Riwayat
+- Manajemen Utang: catat utang pelanggan, cicil via tunai/qris, progress bar, riwayat pembayaran
 - Lisensi MIT
 
 ---
