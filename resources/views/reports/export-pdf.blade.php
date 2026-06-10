@@ -21,11 +21,13 @@
         .badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 10px; font-weight: bold; }
         .badge-paid       { background: #C1F2D0; color: #166534; }
         .badge-pending    { background: #FEF9C3; color: #854D0E; }
+        .badge-debt       { background: #FDE68A; color: #92400E; }
         .badge-cancelled  { background: #F7CDCD; color: #991B1B; }
 
         .badge-cash   { background: #BFDCDE; color: #1e4d50; }
         .badge-qris   { background: #DBC5E8; color: #4a1d7d; }
         .badge-ewallet{ background: #FDE68A; color: #78350F; }
+        .badge-debt-method { background: #FDE68A; color: #92400E; }
 
         .footer { margin: 20px 24px 0; font-size: 10px; color: #999; border-top: 1px solid #e5e5e5; padding-top: 10px; }
         .total-row { font-weight: bold; background: #E4DFB5 !important; }
@@ -54,8 +56,10 @@
                 <th style="width:20%">Invoice</th>
                 <th style="width:18%">Tanggal</th>
                 <th style="width:16%">Total</th>
-                <th style="width:14%">Metode</th>
-                <th style="width:12%">Status</th>
+            <th style="width:16%">Metode</th>
+            <th style="width:14%">Status</th>
+            <th style="width:16%">Pelanggan</th>
+            <th style="width:12%">Sisa Utang</th>
             </tr>
         </thead>
         <tbody>
@@ -66,18 +70,35 @@
                 <td>{{ $order->created_at->format('d M Y H:i') }}</td>
                 <td>Rp {{ number_format($order->total, 0, ',', '.') }}</td>
                 <td>
-                    @php $metode = optional($order->payment)->method ?? '-'; @endphp
-                    <span class="badge badge-{{ $metode }}">{{ ucfirst($metode) }}</span>
+                    @php $metode = optional($order->payment)->method ?? ($order->status === 'debt' ? 'debt' : '-'); @endphp
+                    <span class="badge badge-{{ $metode === 'debt' ? 'debt-method' : $metode }}">{{ $metode === 'debt' ? 'Utang' : ucfirst($metode) }}</span>
                 </td>
                 <td>
-                    <span class="badge badge-{{ $order->status }}">{{ ucfirst($order->status) }}</span>
+                    @php
+                        $statusLabel = match($order->status) {
+                            'paid' => 'Selesai',
+                            'pending' => 'Pending',
+                            'debt' => 'Utang',
+                            'cancelled' => 'Dibatalkan',
+                            default => ucfirst($order->status),
+                        };
+                    @endphp
+                    <span class="badge badge-{{ $order->status }}">{{ $statusLabel }}</span>
+                </td>
+                <td>{{ $order->debt?->customer_name ?? $order->user->name ?? '-' }}</td>
+                <td>
+                    @if($order->status === 'debt' && $order->debt)
+                        Rp {{ number_format($order->debt->remaining_amount, 0, ',', '.') }}
+                    @else
+                        -
+                    @endif
                 </td>
             </tr>
             @endforeach
             <tr class="total-row">
                 <td colspan="3" style="text-align:right; padding-right:12px;">Total Keseluruhan</td>
                 <td>Rp {{ number_format($orders->sum('total'), 0, ',', '.') }}</td>
-                <td colspan="2"></td>
+                <td colspan="5"></td>
             </tr>
         </tbody>
     </table>

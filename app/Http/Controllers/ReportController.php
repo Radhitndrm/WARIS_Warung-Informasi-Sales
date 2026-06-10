@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Debt;
 use App\Models\Order;
 use Illuminate\Http\Request;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -13,13 +14,17 @@ class ReportController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Order::with(['payment', 'items.product', 'user'])->latest();
+        $query = Order::with(['payment', 'items.product', 'user', 'debt'])->latest();
 
         if ($request->filled('search')) {
             $query->where('invoice_no', 'like', '%' . $request->search . '%');
         }
         if ($request->filled('metode')) {
-            $query->whereHas('payment', fn($q) => $q->where('method', $request->metode));
+            if ($request->metode === 'debt') {
+                $query->where('status', 'debt');
+            } else {
+                $query->whereHas('payment', fn($q) => $q->where('method', $request->metode));
+            }
         }
         if ($request->filled('status')) {
             $query->where('status', $request->status);
@@ -39,7 +44,10 @@ class ReportController extends Controller
             ->get();
 
         $ringkasanMetode = $baseQuery
-            ->groupBy(fn($o) => optional($o->payment)->method ?? 'unknown')
+            ->groupBy(function ($o) {
+                if ($o->status === 'debt') return 'debt';
+                return optional($o->payment)->method ?? 'unknown';
+            })
             ->map(fn($group) => $group->sum('total'));
 
         $ringkasanStatus = $baseQuery
@@ -127,9 +135,16 @@ class ReportController extends Controller
         );
     }
 
+    public function showInvoice(Order $order)
+    {
+        $order->load(['payment', 'items.product', 'user', 'debt.payments' => fn($q) => $q->latest()]);
+
+        return view('reports.invoice', compact('order'));
+    }
+
     private function getFilteredOrders(Request $request)
     {
-        return Order::with(['payment', 'items.product'])
+        return Order::with(['payment', 'items.product', 'debt', 'user'])
             ->when($request->filled('from'), fn($q) => $q->whereDate('created_at', '>=', $request->from))
             ->when($request->filled('to'),   fn($q) => $q->whereDate('created_at', '<=', $request->to))
             ->latest()

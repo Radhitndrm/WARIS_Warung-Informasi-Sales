@@ -46,6 +46,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/riwayat', [ReportController::class, 'index'])->name('riwayat');
     Route::get('/riwayat/export/pdf', [ReportController::class, 'exportPdf'])->name('riwayat.export.pdf');
     Route::get('/riwayat/export/excel', [ReportController::class, 'exportExcel'])->name('riwayat.export.excel');
+    Route::get('/invoice/{order}', [ReportController::class, 'showInvoice'])->name('invoice.show');
 
     // Utang
     Route::get('/utang', [DebtController::class, 'index'])->name('utang');

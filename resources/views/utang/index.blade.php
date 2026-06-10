@@ -79,6 +79,7 @@
                         <th class="px-5 py-3 font-medium">Total</th>
                         <th class="px-5 py-3 font-medium">Dibayar</th>
                         <th class="px-5 py-3 font-medium">Sisa</th>
+                        <th class="px-5 py-3 font-medium">Jatuh Tempo</th>
                         <th class="px-5 py-3 font-medium">Status</th>
                         <th class="px-5 py-3 font-medium text-right">Aksi</th>
                     </tr>
@@ -96,10 +97,26 @@
                         <td class="px-5 py-3 font-semibold text-gray-800">Rp {{ number_format($debt->total_amount, 0, ',', '.') }}</td>
                         <td class="px-5 py-3 font-semibold text-green-700">Rp {{ number_format($debt->paid_amount, 0, ',', '.') }}</td>
                         <td class="px-5 py-3 font-semibold text-amber-700">Rp {{ number_format($debt->remaining_amount, 0, ',', '.') }}</td>
+                        <td class="px-5 py-3 text-xs text-muted">
+                            @if($debt->due_date)
+                            <span class="{{ $debt->due_date->isPast() ? 'text-red-600 font-semibold' : 'text-muted' }}">
+                                {{ $debt->due_date->format('d/m/Y') }}
+                                @if($debt->due_date->isPast())
+                                <i class="fa-solid fa-triangle-exclamation ml-1"></i>
+                                @endif
+                            </span>
+                            @else
+                            -
+                            @endif
+                        </td>
                         <td class="px-5 py-3">
                             @if($debt->status === 'paid')
                             <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-green-100 text-green-800 text-xs font-semibold">
                                 <i class="fa-solid fa-circle-check"></i> Lunas
+                            </span>
+                            @elseif($debt->due_date && $debt->due_date->isPast())
+                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-red-100 text-red-800 text-xs font-semibold">
+                                <i class="fa-solid fa-circle-exclamation"></i> Jatuh Tempo
                             </span>
                             @else
                             <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 text-xs font-semibold">
