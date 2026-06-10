@@ -74,6 +74,7 @@
                     <option value="cash"    {{ request('metode') === 'cash'    ? 'selected' : '' }}>Tunai</option>
                     <option value="qris"    {{ request('metode') === 'qris'    ? 'selected' : '' }}>QRIS</option>
                     <option value="ewallet" {{ request('metode') === 'ewallet' ? 'selected' : '' }}>E-Wallet</option>
+                    <option value="debt"    {{ request('metode') === 'debt'    ? 'selected' : '' }}>Utang</option>
                 </select>
 
                 <select name="status"
@@ -82,6 +83,7 @@
                     <option value="">Semua Status</option>
                     <option value="paid"      {{ request('status') === 'paid'      ? 'selected' : '' }}>Selesai</option>
                     <option value="pending"   {{ request('status') === 'pending'   ? 'selected' : '' }}>Pending</option>
+                    <option value="debt"      {{ request('status') === 'debt'      ? 'selected' : '' }}>Utang</option>
                     <option value="cancelled" {{ request('status') === 'cancelled' ? 'selected' : '' }}>Dibatalkan</option>
                 </select>
 
@@ -130,12 +132,18 @@
                     <td class="px-5 py-4 text-sm text-gray-500">{{ $orders->firstItem() + $loop->index }}</td>
                     <td class="px-5 py-4 text-sm font-semibold text-primary">{{ $order->invoice_no }}</td>
                     <td class="px-5 py-4 text-sm text-gray-600">{{ $order->created_at->format('d M Y H:i') }}</td>
-                    <td class="px-5 py-4 text-sm text-gray-600">Pelanggan Umum</td>
+                    <td class="px-5 py-4 text-sm text-gray-600">
+                        @if($order->status === 'debt' && $order->debt)
+                            {{ $order->debt->customer_name }}
+                        @else
+                            {{ $order->user->name ?? 'Pelanggan Umum' }}
+                        @endif
+                    </td>
                     <td class="px-5 py-4 text-sm font-semibold text-primary">
                         Rp {{ number_format($order->total, 0, ',', '.') }}
                     </td>
                     <td class="px-5 py-4 text-center">
-                        @php $metode = optional($order->payment)->method ?? null; @endphp
+                        @php $metode = optional($order->payment)->method ?? ($order->status === 'debt' ? 'debt' : null); @endphp
                         @if($metode === 'cash')
                             <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-[#BFDCDE] text-gray-800">
                                 <i class="fa-solid fa-money-bill-wave text-[10px]"></i> Tunai
@@ -148,6 +156,10 @@
                             <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-[#FDE68A] text-gray-800">
                                 <i class="fa-solid fa-wallet text-[10px]"></i> E-Wallet
                             </span>
+                        @elseif($metode === 'debt')
+                            <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800">
+                                <i class="fa-solid fa-file-invoice-dollar text-[10px]"></i> Utang
+                            </span>
                         @else
                             <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-gray-100 text-gray-500">-</span>
                         @endif
@@ -157,17 +169,25 @@
                             <span class="inline-flex px-3 py-1 rounded-full text-xs font-bold bg-[#C1F2D0] text-green-800">Selesai</span>
                         @elseif($order->status === 'pending')
                             <span class="inline-flex px-3 py-1 rounded-full text-xs font-bold bg-[#FEF9C3] text-yellow-800">Pending</span>
+                        @elseif($order->status === 'debt')
+                            @php
+                                $isOverdue = $order->debt?->due_date && $order->debt->due_date->isPast();
+                                $debtPercent = $order->debt ? round(($order->debt->paid_amount / $order->debt->total_amount) * 100) : 0;
+                            @endphp
+                            <span class="inline-flex px-3 py-1 rounded-full text-xs font-bold {{ $isOverdue ? 'bg-red-100 text-red-800' : 'bg-amber-100 text-amber-800' }}">
+                                @if($isOverdue) Jatuh Tempo @else Utang {{ $debtPercent }}% @endif
+                            </span>
                         @else
                             <span class="inline-flex px-3 py-1 rounded-full text-xs font-bold bg-[#F7CDCD] text-red-800">Dibatalkan</span>
                         @endif
                     </td>
                     <td class="px-5 py-4">
                         <div class="flex items-center justify-center gap-2">
-                            <button @click="$dispatch('open-modal', 'detail-{{ $order->id }}')"
+                            <a href="{{ route('invoice.show', $order) }}"
                                 title="Lihat Detail"
                                 class="w-8 h-8 flex items-center justify-center rounded-lg bg-[#BFDCDE] text-gray-700 hover:bg-[#A8C8CA] transition-colors">
                                 <i class="fa-solid fa-eye text-xs"></i>
-                            </button>
+                            </a>
                             <a href="{{ route('riwayat.export.pdf', ['from' => $order->created_at->format('Y-m-d'), 'to' => $order->created_at->format('Y-m-d')]) }}"
                                 title="Cetak Struk"
                                 class="w-8 h-8 flex items-center justify-center rounded-lg bg-[#F4F2DE] border border-[#8C8A75]/50 text-gray-700 hover:bg-[#E6E4CE] transition-colors">
@@ -246,6 +266,7 @@
                             'cash'    => ['label' => 'Tunai',    'color' => 'bg-[#BFDCDE]'],
                             'ewallet' => ['label' => 'E-Wallet', 'color' => 'bg-[#DBC5E8]'],
                             'qris'    => ['label' => 'QRIS',     'color' => 'bg-[#A8D5A2]'],
+                            'debt'    => ['label' => 'Utang',    'color' => 'bg-amber-300'],
                         ];
                     @endphp
                     @foreach($metodePairs as $key => $meta)
@@ -281,6 +302,7 @@
                         $statusPairs = [
                             'paid'      => ['label' => 'Selesai',    'color' => 'bg-[#C1F2D0]'],
                             'pending'   => ['label' => 'Pending',    'color' => 'bg-[#FEF9C3]'],
+                            'debt'      => ['label' => 'Utang',      'color' => 'bg-amber-200'],
                             'cancelled' => ['label' => 'Dibatalkan', 'color' => 'bg-[#F7CDCD]'],
                         ];
                     @endphp
@@ -402,14 +424,15 @@
     new Chart(document.getElementById('chartMetode'), {
         type: 'doughnut',
         data: {
-            labels: ['Tunai', 'E-Wallet', 'QRIS'],
-            datasets: [{
-                data: [
-                    {{ $ringkasanMetode['cash'] ?? 0 }},
-                    {{ $ringkasanMetode['ewallet'] ?? 0 }},
-                    {{ $ringkasanMetode['qris'] ?? 0 }},
-                ],
-                backgroundColor: ['#BFDCDE', '#DBC5E8', '#A8D5A2'],
+        labels: ['Tunai', 'E-Wallet', 'QRIS', 'Utang'],
+        datasets: [{
+            data: [
+                {{ $ringkasanMetode['cash'] ?? 0 }},
+                {{ $ringkasanMetode['ewallet'] ?? 0 }},
+                {{ $ringkasanMetode['qris'] ?? 0 }},
+                {{ $ringkasanMetode['debt'] ?? 0 }},
+            ],
+            backgroundColor: ['#BFDCDE', '#DBC5E8', '#A8D5A2', '#FDE68A'],
                 borderWidth: 0,
             }]
         },
@@ -428,9 +451,10 @@
                 data: [
                     {{ $ringkasanStatus['paid'] ?? 0 }},
                     {{ $ringkasanStatus['pending'] ?? 0 }},
+                    {{ $ringkasanStatus['debt'] ?? 0 }},
                     {{ $ringkasanStatus['cancelled'] ?? 0 }},
                 ],
-                backgroundColor: ['#C1F2D0', '#FEF9C3', '#F7CDCD'],
+                backgroundColor: ['#C1F2D0', '#FEF9C3', '#FDE68A', '#F7CDCD'],
                 borderWidth: 0,
             }]
         },

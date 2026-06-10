@@ -26,24 +26,34 @@ class TransaksiExport implements FromCollection, WithHeadings, WithStyles, WithC
 
     public function headings(): array
     {
-        return ['No', 'Invoice', 'Tanggal', 'Total (Rp)', 'Metode Bayar', 'Status'];
+        return ['No', 'Invoice', 'Tanggal', 'Total (Rp)', 'Metode Bayar', 'Status', 'Pelanggan', 'Sisa Utang'];
     }
 
     public function collection()
     {
-        $orders = Order::with('payment')
+        $orders = Order::with(['payment', 'debt', 'user'])
             ->when($this->from, fn($q) => $q->whereDate('created_at', '>=', $this->from))
             ->when($this->to,   fn($q) => $q->whereDate('created_at', '<=', $this->to))
             ->latest()
             ->get();
 
         return $orders->map(fn($order, $i) => [
-            'no'      => $i + 1,
-            'invoice' => $order->invoice_no,
-            'tanggal' => $order->created_at->format('d M Y H:i'),
-            'total'   => $order->total,
-            'metode'  => ucfirst(optional($order->payment)->method ?? '-'),
-            'status'  => ucfirst($order->status),
+            'no'       => $i + 1,
+            'invoice'  => $order->invoice_no,
+            'tanggal'  => $order->created_at->format('d M Y H:i'),
+            'total'    => $order->total,
+            'metode'   => $order->status === 'debt' ? 'Utang' : ucfirst(optional($order->payment)->method ?? '-'),
+            'status'   => match($order->status) {
+                'paid' => 'Selesai',
+                'pending' => 'Pending',
+                'debt' => 'Utang',
+                'cancelled' => 'Dibatalkan',
+                default => ucfirst($order->status),
+            },
+            'pelanggan' => $order->debt?->customer_name ?? $order->user->name ?? '-',
+            'sisa_utang' => $order->status === 'debt' && $order->debt
+                ? $order->debt->remaining_amount
+                : '-',
         ]);
     }
 
@@ -56,6 +66,8 @@ class TransaksiExport implements FromCollection, WithHeadings, WithStyles, WithC
             'D' => 18,
             'E' => 16,
             'F' => 14,
+            'G' => 20,
+            'H' => 18,
         ];
     }
 

@@ -24,6 +24,10 @@
             <span class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-green-100 text-green-800 text-sm font-semibold">
                 <i class="fa-solid fa-circle-check"></i> Lunas
             </span>
+            @elseif($debt->due_date && $debt->due_date->isPast())
+            <span class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-red-100 text-red-800 text-sm font-semibold">
+                <i class="fa-solid fa-circle-exclamation"></i> Jatuh Tempo
+            </span>
             @else
             <span class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-amber-100 text-amber-800 text-sm font-semibold">
                 <i class="fa-solid fa-clock"></i> Aktif
@@ -38,6 +42,15 @@
             <p class="text-xs font-medium text-muted mb-1">Pelanggan</p>
             <h3 class="text-lg font-bold text-primary">{{ $debt->customer_name }}</h3>
             <p class="text-sm text-muted"><i class="fa-solid fa-phone mr-1.5"></i>{{ $debt->customer_phone }}</p>
+            @if($debt->due_date)
+            <p class="text-sm mt-1 {{ $debt->due_date->isPast() ? 'text-red-600 font-semibold' : 'text-muted' }}">
+                <i class="fa-solid fa-calendar mr-1.5"></i>
+                Jatuh tempo: {{ $debt->due_date->format('d/m/Y') }}
+                @if($debt->due_date->isPast() && $debt->status === 'active')
+                <span class="text-red-600">(Terlambat!)</span>
+                @endif
+            </p>
+            @endif
         </div>
 
         <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">

@@ -13,8 +13,15 @@ class Debt extends Model
 
     protected $fillable = [
         'order_id', 'customer_name', 'customer_phone',
-        'total_amount', 'paid_amount', 'remaining_amount', 'status',
+        'total_amount', 'paid_amount', 'remaining_amount', 'due_date', 'status',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'due_date' => 'date',
+        ];
+    }
 
     public function order(): BelongsTo
     {

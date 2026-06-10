@@ -33,6 +33,7 @@ class KasirController extends Controller
             'amount_paid' => 'required_if:payment_method,cash|integer|min:0',
             'customer_name' => 'required_if:payment_method,debt|string|max:255',
             'customer_phone' => 'required_if:payment_method,debt|string|max:20',
+            'due_date' => 'nullable|date|after:today',
         ]);
 
         DB::beginTransaction();
@@ -124,6 +125,7 @@ class KasirController extends Controller
                     'total_amount' => $total,
                     'paid_amount' => 0,
                     'remaining_amount' => $total,
+                    'due_date' => $validated['due_date'] ?? now()->addDays(30)->format('Y-m-d'),
                     'status' => 'active',
                 ]);
 
@@ -139,6 +141,7 @@ class KasirController extends Controller
                         'change_amount' => 0,
                         'payment_method' => 'debt',
                         'debt_id' => $debt->id,
+                        'due_date' => $debt->due_date?->format('d/m/Y'),
                         'customer_name' => $debt->customer_name,
                         'customer_phone' => $debt->customer_phone,
                         'items' => collect($orderItems)->map(fn ($item) => [

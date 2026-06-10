@@ -588,8 +588,12 @@ class DbContextService
             $lines .= "\nAnalisis umur utang:\n";
             foreach ($activeDebts as $d) {
                 $daysAgo = $d->created_at->diffInDays(now());
+                $isOverdue = $d->due_date && $d->due_date->isPast();
                 $lines .= "- {$d->customer_name}: {$daysAgo} hari";
-                if ($daysAgo > 30) {
+                if ($isOverdue) {
+                    $daysLate = $d->due_date->diffInDays(now());
+                    $lines .= " (JATUH TEMPO: {$d->due_date->format('d/m/Y')}, terlambat {$daysLate} hari!)";
+                } elseif ($daysAgo > 30) {
                     $lines .= " (PERLU PENAGIHAN!)";
                 }
                 $lines .= "\n";
@@ -599,13 +603,25 @@ class DbContextService
         // Customers needing collection
         if (str_contains($lower, 'tagih') || str_contains($lower, 'prioritas')) {
             $lines .= "\nUtang yang perlu segera ditagih:\n";
-            $overdue = $activeDebts->filter(fn($d) => $d->created_at->diffInDays(now()) > 30);
+            $overdue = $activeDebts->filter(fn($d) => $d->due_date && $d->due_date->isPast());
             if ($overdue->isNotEmpty()) {
                 foreach ($overdue as $d) {
-                    $lines .= "- {$d->customer_name} ({$d->customer_phone}): Rp" . number_format($d->remaining_amount, 0, ',', '.') . " (jatuh tempo >30 hari)\n";
+                    $daysLate = $d->due_date->diffInDays(now());
+                    $lines .= "- {$d->customer_name} ({$d->customer_phone}): Rp" . number_format($d->remaining_amount, 0, ',', '.') . " (jatuh tempo {$d->due_date->format('d/m/Y')}, terlambat {$daysLate} hari)\n";
+                }
+                $over30 = $activeDebts->filter(fn($d) => (!$d->due_date || !$d->due_date->isPast()) && $d->created_at->diffInDays(now()) > 30);
+                foreach ($over30 as $d) {
+                    $lines .= "- {$d->customer_name} ({$d->customer_phone}): Rp" . number_format($d->remaining_amount, 0, ',', '.') . " (utang >30 hari)\n";
                 }
             } else {
-                $lines .= "Semua utang masih dalam batas wajar (<30 hari).\n";
+                $over30 = $activeDebts->filter(fn($d) => $d->created_at->diffInDays(now()) > 30);
+                if ($over30->isNotEmpty()) {
+                    foreach ($over30 as $d) {
+                        $lines .= "- {$d->customer_name} ({$d->customer_phone}): Rp" . number_format($d->remaining_amount, 0, ',', '.') . " (utang >30 hari)\n";
+                    }
+                } else {
+                    $lines .= "Semua utang masih dalam batas wajar (<30 hari).\n";
+                }
             }
         }
 

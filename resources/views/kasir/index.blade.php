@@ -274,6 +274,11 @@
                 <input type="text" x-model="customerPhone"
                     class="w-full px-4 py-2.5 bg-white border border-[#C8C4A0] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500 placeholder:text-gray-400"
                     placeholder="No. telepon...">
+                <div>
+                    <label class="text-xs text-gray-500 mb-1 block">Jatuh Tempo (default 30 hari)</label>
+                    <input type="date" x-model="dueDate"
+                        class="w-full px-4 py-2.5 bg-white border border-[#C8C4A0] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500 placeholder:text-gray-400">
+                </div>
             </div>
 
             <button @click="checkout" :disabled="cart.length === 0 || checkoutLoading"
@@ -302,6 +307,7 @@
                         <div class="mt-2 text-xs text-gray-600">
                             <p>Pelanggan: <span class="font-semibold" x-text="lastOrder?.customer_name"></span></p>
                             <p>Telp: <span class="font-semibold" x-text="lastOrder?.customer_phone"></span></p>
+                            <p x-show="lastOrder?.due_date">Jatuh tempo: <span class="font-semibold text-amber-700" x-text="lastOrder?.due_date"></span></p>
                         </div>
                     </template>
                 </div>
@@ -359,6 +365,7 @@ function kasirApp() {
         amountPaid: 0,
         customerName: '',
         customerPhone: '',
+        dueDate: '',
         checkoutLoading: false,
         processingPayment: false,
         snapToken: null,
@@ -456,6 +463,7 @@ function kasirApp() {
                 if (this.paymentMethod === 'debt') {
                     body.customer_name = this.customerName;
                     body.customer_phone = this.customerPhone;
+                    if (this.dueDate) body.due_date = this.dueDate;
                 }
                 const res = await fetch('{{ route("kasir.checkout") }}', {
                     method: 'POST',
@@ -559,6 +567,7 @@ function kasirApp() {
             this.amountPaid = 0;
             this.customerName = '';
             this.customerPhone = '';
+            this.dueDate = '';
             this.paymentMethod = 'cash';
             this.showReceipt = false;
             this.lastOrder = null;
