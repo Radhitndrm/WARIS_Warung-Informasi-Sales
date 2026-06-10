@@ -37,7 +37,7 @@
     </div>
 
     {{-- Customer & Debt Info --}}
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
         <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
             <p class="text-xs font-medium text-muted mb-1">Pelanggan</p>
             <h3 class="text-lg font-bold text-primary">{{ $debt->customer_name }}</h3>
@@ -94,8 +94,8 @@
             </button>
         </div>
 
-        <div class="flex items-end gap-3">
-            <div class="flex-1">
+        <div class="flex flex-col sm:flex-row items-start sm:items-end gap-3">
+            <div class="flex-1 w-full">
                 <label class="text-xs font-medium text-muted block mb-1">Jumlah Bayar</label>
                 <input type="number" x-model="payAmount"
                     class="w-full px-4 py-2.5 bg-white border border-[#C8C4A0] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-sidebar/40 focus:border-sidebar placeholder:text-gray-400"

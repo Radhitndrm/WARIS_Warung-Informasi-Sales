@@ -1,8 +1,15 @@
-<aside class="w-64 min-h-screen bg-sidebar flex flex-col shrink-0">
+<aside
+    :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'"
+    class="w-64 min-h-screen bg-sidebar flex flex-col shrink-0 fixed inset-y-0 left-0 z-50 lg:static lg:translate-x-0 transition-transform duration-300">
 
     {{-- Logo --}}
-    <div class="px-6 py-5 border-b border-sidebar-active">
+    <div class="px-6 py-5 border-b border-sidebar-active flex items-center justify-between">
         <img src="{{ asset('images/sidebar-logo.png') }}" alt="WARIS" class="h-10 w-auto">
+        <button @click="sidebarOpen = false" class="lg:hidden text-cream/70 hover:text-white">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+        </button>
     </div>
 
     {{-- Navigation --}}

@@ -17,7 +17,7 @@
     </div>
 
     {{-- Summary Cards --}}
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
         <div class="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
             <div class="flex items-center gap-3">
                 <div class="w-11 h-11 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-600 shrink-0">
@@ -71,7 +71,7 @@
         </div>
         @else
         <div class="overflow-x-auto">
-            <table class="w-full text-sm text-left">
+            <table class="w-full min-w-[800px] text-sm text-left">
                 <thead class="text-xs text-muted bg-gray-50 border-b border-gray-100">
                     <tr>
                         <th class="px-5 py-3 font-medium">Invoice</th>

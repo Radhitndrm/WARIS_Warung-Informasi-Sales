@@ -1,8 +1,15 @@
-<header class="h-16 bg-cream border-b border-border flex items-center px-6 gap-4">
+<header class="h-16 bg-cream border-b border-border flex items-center px-4 md:px-6 gap-4">
+
+    {{-- Mobile hamburger --}}
+    <button @click="sidebarOpen = !sidebarOpen" class="lg:hidden text-primary hover:text-sidebar transition-colors shrink-0">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+        </svg>
+    </button>
 
     @unless(request()->routeIs('dashboard') || request()->routeIs('kasir') || request()->routeIs('chatbot.*'))
     <div class="flex-1 flex justify-center">
-        <div class="relative w-80" x-data="{}">
+        <div class="relative w-full max-w-xs md:w-80" x-data="{}">
             <span class="absolute inset-y-0 left-4 flex items-center text-muted">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round"

@@ -37,7 +37,8 @@
 
     {{-- Table Card --}}
     <div class="bg-[#F4F2DE] rounded-2xl border border-[#8C8A75] shadow-sm overflow-hidden">
-        <table class="w-full">
+        <div class="overflow-x-auto">
+        <table class="w-full min-w-[500px]">
             <thead>
                 <tr class="border-b border-[#8C8A75]/30">
                     <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-20">No</th>
@@ -100,6 +101,7 @@
                 </tr>
             </tbody>
         </table>
+        </div>
     </div>
 </div>
 

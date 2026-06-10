@@ -122,8 +122,14 @@
     }
     @media (max-width: 1024px) {
         .kasir-layout { flex-direction: column; height: auto; }
-        .cart-sidebar { width: 100%; }
-        .product-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+        .cart-sidebar { width: 100%; max-height: 50vh; }
+        .product-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
+    }
+    @media (max-width: 640px) {
+        .product-grid { grid-template-columns: repeat(2, 1fr); gap: 0.5rem; }
+        .product-card { padding: 0.75rem; }
+        .product-card .product-img { height: 3.5rem; }
+        .kasir-layout { gap: 0.75rem; }
     }
 </style>
 @endpush
