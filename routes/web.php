@@ -19,6 +19,7 @@ Route::post('/midtrans/notification', [PaymentNotificationController::class, 'ha
 Route::middleware(['auth'])->group(function () {
 
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/dashboard/stok-menipis', [DashboardController::class, 'stokMenipis'])->name('dashboard.stok-menipis');
 
     // Kategori
     Route::get('/kategori', [CategoryController::class, 'index'])->name('kategori');
