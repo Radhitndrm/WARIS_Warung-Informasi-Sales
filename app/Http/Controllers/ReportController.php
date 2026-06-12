@@ -29,6 +29,24 @@ class ReportController extends Controller
         if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
+
+        if ($request->filled('periode')) {
+            switch ($request->periode) {
+                case 'minggu-ini':
+                    $request->merge(['from' => now()->startOfWeek()->format('Y-m-d'), 'to' => now()->endOfWeek()->format('Y-m-d')]);
+                    break;
+                case 'minggu-lalu':
+                    $request->merge(['from' => now()->subWeek()->startOfWeek()->format('Y-m-d'), 'to' => now()->subWeek()->endOfWeek()->format('Y-m-d')]);
+                    break;
+                case 'bulan-ini':
+                    $request->merge(['from' => now()->startOfMonth()->format('Y-m-d'), 'to' => now()->endOfMonth()->format('Y-m-d')]);
+                    break;
+                case 'bulan-lalu':
+                    $request->merge(['from' => now()->subMonth()->startOfMonth()->format('Y-m-d'), 'to' => now()->subMonth()->endOfMonth()->format('Y-m-d')]);
+                    break;
+            }
+        }
+
         if ($request->filled('from')) {
             $query->whereDate('created_at', '>=', $request->from);
         }

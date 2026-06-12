@@ -107,6 +107,25 @@
                     <i class="fa-solid fa-rotate-right text-xs"></i> Reset
                 </a>
 
+                <div class="flex items-center gap-2">
+                    <span class="text-xs text-gray-500 font-medium">Cepat:</span>
+                    <a href="{{ route('riwayat', ['periode' => 'minggu-ini'] + request()->except('periode', 'from', 'to', 'page')) }}"
+                        class="px-3 py-1.5 text-xs font-semibold rounded-lg border transition-colors {{ request('periode') === 'minggu-ini' ? 'bg-sidebar text-white border-sidebar' : 'bg-white text-gray-600 border-[#8C8A75]/50 hover:bg-[#E6E4CE]' }}">
+                        Minggu Ini
+                    </a>
+                    <a href="{{ route('riwayat', ['periode' => 'minggu-lalu'] + request()->except('periode', 'from', 'to', 'page')) }}"
+                        class="px-3 py-1.5 text-xs font-semibold rounded-lg border transition-colors {{ request('periode') === 'minggu-lalu' ? 'bg-sidebar text-white border-sidebar' : 'bg-white text-gray-600 border-[#8C8A75]/50 hover:bg-[#E6E4CE]' }}">
+                        Minggu Lalu
+                    </a>
+                    <a href="{{ route('riwayat', ['periode' => 'bulan-ini'] + request()->except('periode', 'from', 'to', 'page')) }}"
+                        class="px-3 py-1.5 text-xs font-semibold rounded-lg border transition-colors {{ request('periode') === 'bulan-ini' ? 'bg-sidebar text-white border-sidebar' : 'bg-white text-gray-600 border-[#8C8A75]/50 hover:bg-[#E6E4CE]' }}">
+                        Bulan Ini
+                    </a>
+                    <a href="{{ route('riwayat', ['periode' => 'bulan-lalu'] + request()->except('periode', 'from', 'to', 'page')) }}"
+                        class="px-3 py-1.5 text-xs font-semibold rounded-lg border transition-colors {{ request('periode') === 'bulan-lalu' ? 'bg-sidebar text-white border-sidebar' : 'bg-white text-gray-600 border-[#8C8A75]/50 hover:bg-[#E6E4CE]' }}">
+                        Bulan Lalu
+                    </a>
+                </div>
             </div>
         </div>
     </form>
