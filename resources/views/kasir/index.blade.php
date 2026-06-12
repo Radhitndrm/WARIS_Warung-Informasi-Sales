@@ -275,7 +275,7 @@
                     <span class="font-bold" :class="changeAmount >= 0 ? 'text-green-700' : 'text-red-600'" x-text="'Rp ' + formatPrice(changeAmount)"></span>
                 </div>
                 <div x-show="amountPaid > 0 && changeAmount < 0" class="text-xs text-red-500 mt-1 font-medium flex items-center gap-1">
-                    <i class="fa-solid fa-circle-exclamation"></i> Uang kurang Rp {{ number_format(abs(changeAmount), 0, ',', '.') }}
+                    <i class="fa-solid fa-circle-exclamation"></i> <span x-text="'Uang kurang Rp ' + formatPrice(Math.abs(changeAmount))"></span>
                 </div>
             </div>
 
