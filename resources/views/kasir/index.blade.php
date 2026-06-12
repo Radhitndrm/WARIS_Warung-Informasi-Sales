@@ -263,12 +263,19 @@
 
             {{-- Amount Paid (cash only) --}}
             <div x-show="paymentMethod === 'cash'" x-cloak>
-                <input type="number" x-model="amountPaid" @input.debounce="calcChange"
-                    class="w-full px-4 py-2.5 bg-white border border-[#C8C4A0] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-sidebar/40 focus:border-sidebar placeholder:text-gray-400"
-                    placeholder="Jumlah bayar...">
-                <div x-show="amountPaid > 0 && changeAmount >= 0" class="flex justify-between mt-1.5 text-sm">
+                <div class="relative">
+                    <span class="absolute inset-y-0 left-3 flex items-center text-gray-400 text-sm font-medium">Rp</span>
+                    <input type="text" x-model="amountPaidDisplay" @input="onAmountPaidInput"
+                        @keydown="onAmountPaidKeydown"
+                        class="w-full pl-10 pr-4 py-2.5 bg-white border border-[#C8C4A0] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-sidebar/40 focus:border-sidebar placeholder:text-gray-400"
+                        placeholder="0">
+                </div>
+                <div x-show="amountPaid > 0" class="flex justify-between mt-1.5 text-sm">
                     <span class="text-gray-500">Kembali</span>
                     <span class="font-bold" :class="changeAmount >= 0 ? 'text-green-700' : 'text-red-600'" x-text="'Rp ' + formatPrice(changeAmount)"></span>
+                </div>
+                <div x-show="amountPaid > 0 && changeAmount < 0" class="text-xs text-red-500 mt-1 font-medium flex items-center gap-1">
+                    <i class="fa-solid fa-circle-exclamation"></i> <span x-text="'Uang kurang Rp ' + formatPrice(Math.abs(changeAmount))"></span>
                 </div>
             </div>
 
@@ -369,6 +376,7 @@ function kasirApp() {
         cart: [],
         paymentMethod: 'cash',
         amountPaid: 0,
+        amountPaidDisplay: '',
         customerName: '',
         customerPhone: '',
         dueDate: '',
@@ -400,6 +408,25 @@ function kasirApp() {
 
         formatPrice(val) {
             return Number(val).toLocaleString('id-ID');
+        },
+
+        onAmountPaidInput(e) {
+            let raw = e.target.value.replace(/[^\d]/g, '');
+            if (raw === '' || raw === '0') {
+                this.amountPaid = 0;
+                this.amountPaidDisplay = '';
+                return;
+            }
+            this.amountPaid = parseInt(raw, 10);
+            this.amountPaidDisplay = Number(raw).toLocaleString('id-ID');
+        },
+
+        onAmountPaidKeydown(e) {
+            const allowed = ['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab', 'Home', 'End'];
+            if (allowed.includes(e.key)) return;
+            if (e.key >= '0' && e.key <= '9') return;
+            if (e.ctrlKey || e.metaKey) return;
+            e.preventDefault();
         },
 
         addToCart(product) {
@@ -571,6 +598,7 @@ function kasirApp() {
         resetCart() {
             this.cart = [];
             this.amountPaid = 0;
+            this.amountPaidDisplay = '';
             this.customerName = '';
             this.customerPhone = '';
             this.dueDate = '';

@@ -89,10 +89,11 @@
                         <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
                     </svg>
                 </div>
-                <div>
+                <div x-data="stokMenipisCount()">
                     <p class="text-xs font-medium text-muted">Stok Menipis</p>
-                    <h3 class="text-lg font-bold text-amber-700">{{ $stokMenipis }} <span class="text-sm font-normal text-muted">Produk</span></h3>
-                    <p class="text-xs font-semibold text-red-500">Segera Restock!</p>
+                    <h3 class="text-lg font-bold text-amber-700"><span x-text="count"></span> <span class="text-sm font-normal text-muted">Produk</span></h3>
+                    <p x-show="count > 0" class="text-xs font-semibold text-red-500">Segera Restock!</p>
+                    <p x-show="count === 0" class="text-xs font-semibold text-green-600">Stok Aman</p>
                 </div>
             </div>
         </div>
@@ -144,33 +145,37 @@
         </div>
 
         <div class="space-y-6">
-            <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+            <div x-data="stokMenipisWidget()" x-init="fetchStok()" class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
                 <div class="flex items-center justify-between mb-3">
                     <h3 class="text-sm font-bold text-primary">Produk Stok Menipis</h3>
-                    <a href="#" class="text-xs text-muted hover:text-primary">Lihat Semua</a>
+                    <a href="{{ route('produk') }}" class="text-xs text-muted hover:text-primary">Lihat Semua</a>
                 </div>
-                @if($produkStokMenipis->count() > 0)
-                <table class="w-full text-xs text-left">
-                    <thead class="text-muted border-b border-gray-100">
-                        <tr>
-                            <th class="pb-2 font-medium">Produk</th>
-                            <th class="pb-2 text-center font-medium">Stok</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-50">
-                        @foreach($produkStokMenipis as $produk)
-                        <tr>
-                            <td class="py-2 font-medium text-primary">{{ $produk->name }}</td>
-                            <td class="py-2 text-center font-bold {{ $produk->stock <= 2 ? 'text-red-500' : 'text-amber-600' }}">
-                                {{ $produk->stock }}
-                            </td>
-                        </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-                @else
-                <p class="text-xs text-muted py-4 text-center">Tidak ada produk dengan stok menipis.</p>
-                @endif
+                <template x-if="loading">
+                    <p class="text-xs text-muted py-4 text-center flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-spinner fa-spin"></i> Memuat...
+                    </p>
+                </template>
+                <template x-if="!loading && products.length > 0">
+                    <table class="w-full text-xs text-left">
+                        <thead class="text-muted border-b border-gray-100">
+                            <tr>
+                                <th class="pb-2 font-medium">Produk</th>
+                                <th class="pb-2 text-center font-medium">Stok</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-50">
+                            <template x-for="p in products" :key="p.id">
+                            <tr>
+                                <td class="py-2 font-medium text-primary" x-text="p.name"></td>
+                                <td class="py-2 text-center font-bold" :class="p.stock <= 2 ? 'text-red-500' : 'text-amber-600'" x-text="p.stock"></td>
+                            </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </template>
+                <template x-if="!loading && products.length === 0">
+                    <p class="text-xs text-muted py-4 text-center">Tidak ada produk dengan stok menipis.</p>
+                </template>
             </div>
 
             <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
@@ -210,6 +215,58 @@
 
 @push('scripts')
 <script>
+function stokMenipisCount() {
+    return {
+        count: {{ $stokMenipis }},
+        polling: null,
+
+        async fetchCount() {
+            try {
+                const res = await fetch('{{ route("dashboard.stok-menipis") }}');
+                const data = await res.json();
+                this.count = data.count;
+            } catch (e) {}
+        },
+
+        init() {
+            this.polling = setInterval(() => this.fetchCount(), 30000);
+        },
+
+        destroy() {
+            if (this.polling) clearInterval(this.polling);
+        }
+    };
+}
+
+function stokMenipisWidget() {
+    return {
+        products: @json($produkStokMenipis),
+        loading: false,
+        polling: null,
+
+        async fetchStok() {
+            try {
+                const res = await fetch('{{ route("dashboard.stok-menipis") }}');
+                const data = await res.json();
+                this.products = data.products;
+                // update the parent card count if needed
+                const badge = document.querySelector('[x-text="stokMenipisCount"]');
+                if (badge) badge.textContent = data.count;
+            } catch (e) {
+                // silently fail on network error
+            }
+        },
+
+        init() {
+            this.polling = setInterval(() => this.fetchStok(), 30000);
+        },
+
+        destroy() {
+            if (this.polling) clearInterval(this.polling);
+        }
+    };
+}
+
 setTimeout(() => {
     const ctx = document.getElementById('salesChart')?.getContext('2d');
     if (!ctx) return;

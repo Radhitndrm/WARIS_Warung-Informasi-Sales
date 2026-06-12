@@ -89,4 +89,15 @@ class DashboardController extends Controller
             'jumlahUtangAktif',
         ));
     }
+
+    public function stokMenipis()
+    {
+        $produk = Product::where('stock', '<=', 5)->orderBy('stock')->get();
+        $stokMenipis = $produk->count();
+
+        return response()->json([
+            'count' => $stokMenipis,
+            'products' => $produk,
+        ]);
+    }
 }

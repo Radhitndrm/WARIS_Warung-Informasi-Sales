@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<erd>
+  <title>WARIS - Point of Sale Database ERD</title>
+
+  <tables>
+
+    <!-- ======================== -->
+    <table name="users">
+      <description>Data kasir / pengguna aplikasi</description>
+      <columns>
+        <column name="id" type="bigint" key="pk" auto-increment="true"/>
+        <column name="name" type="varchar(255)"/>
+        <column name="email" type="varchar(255)" unique="true"/>
+        <column name="email_verified_at" type="timestamp" nullable="true"/>
+        <column name="password" type="varchar(255)"/>
+        <column name="two_factor_secret" type="text" nullable="true"/>
+        <column name="two_factor_recovery_codes" type="text" nullable="true"/>
+        <column name="remember_token" type="varchar(100)" nullable="true"/>
+        <column name="created_at" type="timestamp"/>
+        <column name="updated_at" type="timestamp"/>
+      </columns>
+    </table>
+
+    <!-- ======================== -->
+    <table name="categories">
+      <description>Kategori produk</description>
+      <columns>
+        <column name="id" type="bigint" key="pk" auto-increment="true"/>
+        <column name="name" type="varchar(255)"/>
+        <column name="created_at" type="timestamp"/>
+        <column name="updated_at" type="timestamp"/>
+      </columns>
+    </table>
+
+    <!-- ======================== -->
+    <table name="products">
+      <description>Produk warung yang dijual</description>
+      <columns>
+        <column name="id" type="bigint" key="pk" auto-increment="true"/>
+        <column name="category_id" type="bigint" key="fk" ref="categories.id" on-delete="cascade"/>
+        <column name="name" type="varchar(255)"/>
+        <column name="price" type="integer" comment="Harga jual (Rupiah)"/>
+        <column name="purchase_price" type="integer" comment="Harga beli / modal (Rupiah)"/>
+        <column name="stock" type="integer" default="0"/>
+        <column name="image" type="varchar(255)" nullable="true"/>
+        <column name="is_active" type="boolean" default="true"/>
+        <column name="created_at" type="timestamp"/>
+        <column name="updated_at" type="timestamp"/>
+      </columns>
+    </table>
+
+    <!-- ======================== -->
+    <table name="orders">
+      <description>Header transaksi / pesanan</description>
+      <columns>
+        <column name="id" type="bigint" key="pk" auto-increment="true"/>
+        <column name="user_id" type="bigint" key="fk" ref="users.id" on-delete="cascade"/>
+        <column name="invoice_no" type="varchar(255)" unique="true" comment="Format: INV-YYYYMMDD-XXXX"/>
+        <column name="total" type="integer"/>
+        <column name="status" type="enum" values="pending,paid,cancelled,debt" default="pending"/>
+        <column name="created_at" type="timestamp"/>
+        <column name="updated_at" type="timestamp"/>
+      </columns>
+    </table>
+
+    <!-- ======================== -->
+    <table name="order_items">
+      <description>Detail item per transaksi</description>
+      <columns>
+        <column name="id" type="bigint" key="pk" auto-increment="true"/>
+        <column name="order_id" type="bigint" key="fk" ref="orders.id" on-delete="cascade"/>
+        <column name="product_id" type="bigint" key="fk" ref="products.id" on-delete="cascade"/>
+        <column name="quantity" type="integer"/>
+        <column name="price" type="integer" comment="Harga satuan saat transaksi"/>
+        <column name="subtotal" type="integer" comment="quantity * price"/>
+        <column name="created_at" type="timestamp"/>
+        <column name="updated_at" type="timestamp"/>
+      </columns>
+    </table>
+
+    <!-- ======================== -->
+    <table name="payments">
+      <description>Pembayaran (Cash / QRIS / E-Wallet)</description>
+      <columns>
+        <column name="id" type="bigint" key="pk" auto-increment="true"/>
+        <column name="order_id" type="bigint" key="fk" ref="orders.id" on-delete="cascade"/>
+        <column name="method" type="enum" values="cash,qris,e-wallet"/>
+        <column name="amount" type="integer"/>
+        <column name="change_amount" type="integer" default="0"/>
+        <column name="midtrans_id" type="varchar(255)" nullable="true"/>
+        <column name="snap_token" type="varchar(255)" nullable="true"/>
+        <column name="payment_url" type="varchar(255)" nullable="true"/>
+        <column name="status" type="enum" values="pending,success,failed" default="pending"/>
+        <column name="created_at" type="timestamp"/>
+        <column name="updated_at" type="timestamp"/>
+      </columns>
+    </table>
+
+    <!-- ======================== -->
+    <table name="debts">
+      <description>Utang / kredit pelanggan</description>
+      <columns>
+        <column name="id" type="bigint" key="pk" auto-increment="true"/>
+        <column name="order_id" type="bigint" key="fk" ref="orders.id" on-delete="cascade" unique="true"/>
+        <column name="customer_name" type="varchar(255)"/>
+        <column name="customer_phone" type="varchar(20)"/>
+        <column name="total_amount" type="integer" comment="Total utang (sama dengan order.total)"/>
+        <column name="paid_amount" type="integer" default="0" comment="Total sudah dibayar"/>
+        <column name="remaining_amount" type="integer" comment="Sisa utang = total - paid"/>
+        <column name="due_date" type="date" nullable="true" comment="Jatuh tempo, default +30 hari"/>
+        <column name="status" type="enum" values="active,paid" default="active"/>
+        <column name="created_at" type="timestamp"/>
+        <column name="updated_at" type="timestamp"/>
+      </columns>
+    </table>
+
+    <!-- ======================== -->
+    <table name="debt_payments">
+      <description>Riwayat cicilan / pembayaran utang</description>
+      <columns>
+        <column name="id" type="bigint" key="pk" auto-increment="true"/>
+        <column name="debt_id" type="bigint" key="fk" ref="debts.id" on-delete="cascade"/>
+        <column name="amount" type="integer"/>
+        <column name="method" type="enum" values="cash,qris"/>
+        <column name="status" type="enum" values="pending,success,failed" default="success"/>
+        <column name="midtrans_id" type="varchar(255)" nullable="true"/>
+        <column name="snap_token" type="varchar(255)" nullable="true"/>
+        <column name="payment_url" type="varchar(255)" nullable="true"/>
+        <column name="notes" type="varchar(255)" nullable="true"/>
+        <column name="created_at" type="timestamp"/>
+        <column name="updated_at" type="timestamp"/>
+      </columns>
+    </table>
+
+    <!-- ======================== -->
+    <table name="chat_histories">
+      <description>Riwayat percakapan Chatbot AI</description>
+      <columns>
+        <column name="id" type="bigint" key="pk" auto-increment="true"/>
+        <column name="user_id" type="bigint" key="fk" ref="users.id" on-delete="cascade"/>
+        <column name="role" type="enum" values="user,assistant"/>
+        <column name="message" type="text"/>
+        <column name="created_at" type="timestamp"/>
+        <column name="updated_at" type="timestamp"/>
+      </columns>
+    </table>
+
+    <!-- ======================== -->
+    <table name="cache">
+      <description>Cache system Laravel</description>
+      <columns>
+        <column name="key" type="varchar(255)" key="pk"/>
+        <column name="value" type="mediumtext"/>
+        <column name="expiration" type="integer"/>
+      </columns>
+    </table>
+
+    <table name="cache_locks">
+      <description>Cache locking</description>
+      <columns>
+        <column name="key" type="varchar(255)" key="pk"/>
+        <column name="owner" type="varchar(255)"/>
+        <column name="expiration" type="integer"/>
+      </columns>
+    </table>
+
+    <table name="jobs">
+      <description>Queue jobs (Midtrans webhook dll)</description>
+      <columns>
+        <column name="id" type="bigint" key="pk" auto-increment="true"/>
+        <column name="queue" type="varchar(255)"/>
+        <column name="payload" type="longtext"/>
+        <column name="attempts" type="tinyint" unsigned="true"/>
+        <column name="reserved_at" type="integer" unsigned="true" nullable="true"/>
+        <column name="available_at" type="integer" unsigned="true"/>
+        <column name="created_at" type="integer" unsigned="true"/>
+      </columns>
+    </table>
+
+    <table name="job_batches">
+      <description>Batch jobs</description>
+      <columns>
+        <column name="id" type="varchar(255)" key="pk"/>
+        <column name="name" type="varchar(255)"/>
+        <column name="total_jobs" type="integer"/>
+        <column name="pending_jobs" type="integer"/>
+        <column name="failed_jobs" type="integer"/>
+        <column name="failed_job_ids" type="longtext"/>
+        <column name="options" type="mediumtext" nullable="true"/>
+        <column name="cancelled_at" type="integer" nullable="true"/>
+        <column name="created_at" type="integer"/>
+        <column name="finished_at" type="integer" nullable="true"/>
+      </columns>
+    </table>
+
+    <table name="failed_jobs">
+      <description>Failed jobs log</description>
+      <columns>
+        <column name="id" type="bigint" key="pk" auto-increment="true"/>
+        <column name="uuid" type="varchar(255)" unique="true"/>
+        <column name="connection" type="text"/>
+        <column name="queue" type="text"/>
+        <column name="payload" type="longtext"/>
+        <column name="exception" type="longtext"/>
+        <column name="failed_at" type="timestamp" default="CURRENT_TIMESTAMP"/>
+      </columns>
+    </table>
+
+  </tables>
+
+  <!-- ======================== -->
+  <relationships>
+    <relationship from="products" from-column="category_id" to="categories" to-column="id" type="many-to-one" label="dimiliki oleh"/>
+    <relationship from="orders" from-column="user_id" to="users" to-column="id" type="many-to-one" label="dibuat oleh"/>
+    <relationship from="order_items" from-column="order_id" to="orders" to-column="id" type="many-to-one" label="milik"/>
+    <relationship from="order_items" from-column="product_id" to="products" to-column="id" type="many-to-one" label="produk"/>
+    <relationship from="payments" from-column="order_id" to="orders" to-column="id" type="one-to-one" label="pembayaran"/>
+    <relationship from="debts" from-column="order_id" to="orders" to-column="id" type="one-to-one" label="utang"/>
+    <relationship from="debt_payments" from-column="debt_id" to="debts" to-column="id" type="many-to-one" label="cicilan"/>
+    <relationship from="chat_histories" from-column="user_id" to="users" to-column="id" type="many-to-one" label="chat oleh"/>
+  </relationships>
+
+</erd>
