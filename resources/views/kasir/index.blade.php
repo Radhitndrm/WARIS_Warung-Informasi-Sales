@@ -5,6 +5,10 @@
 @push('head')
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <script src="https://{{ config('services.midtrans.is_production') ? 'app' : 'app.sandbox' }}.midtrans.com/snap/snap.js" data-client-key="{{ config('services.midtrans.client_key') }}"></script>
+<meta name="csrf-token" content="{{ csrf_token() }}">
+<meta name="checkout-url" content="{{ route('kasir.checkout') }}">
+<meta name="payment-callback-url" content="{{ route('kasir.payment-callback') }}">
+@vite(['resources/js/kasir.js'])
 <style>
     .kasir-layout {
         display: flex;
@@ -136,7 +140,7 @@
 
 @section('content')
 
-<div x-data="kasirApp()" class="kasir-layout">
+<div x-data="kasirApp({{ Illuminate\Support\Js::from($products->values()) }}, {{ Illuminate\Support\Js::from($categories->values()) }})" class="kasir-layout">
 
     {{-- Left: Products --}}
     <div class="flex-1 flex flex-col min-w-0 space-y-4">
@@ -146,7 +150,7 @@
             <div class="relative flex-1">
                 <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
                 <input type="text" x-model="search" @input="filterProducts"
-                    class="w-full pl-9 pr-4 py-2.5 bg-white border border-[#C8C4A0] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-sidebar/40 focus:border-sidebar placeholder:text-gray-400"
+                    class="w-full pl-9 pr-4 py-2.5 bg-white border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-sidebar/40 focus:border-sidebar placeholder:text-gray-400"
                     placeholder="Cari produk...">
             </div>
         </div>
@@ -267,7 +271,7 @@
                     <span class="absolute inset-y-0 left-3 flex items-center text-gray-400 text-sm font-medium">Rp</span>
                     <input type="text" x-model="amountPaidDisplay" @input="onAmountPaidInput"
                         @keydown="onAmountPaidKeydown"
-                        class="w-full pl-10 pr-4 py-2.5 bg-white border border-[#C8C4A0] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-sidebar/40 focus:border-sidebar placeholder:text-gray-400"
+                        class="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-sidebar/40 focus:border-sidebar placeholder:text-gray-400"
                         placeholder="0">
                 </div>
                 <div x-show="amountPaid > 0" class="flex justify-between mt-1.5 text-sm">
@@ -282,15 +286,15 @@
             {{-- Debt Customer Info --}}
             <div x-show="paymentMethod === 'debt'" x-cloak class="space-y-2">
                 <input type="text" x-model="customerName"
-                    class="w-full px-4 py-2.5 bg-white border border-[#C8C4A0] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500 placeholder:text-gray-400"
+                    class="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500 placeholder:text-gray-400"
                     placeholder="Nama pelanggan...">
                 <input type="text" x-model="customerPhone"
-                    class="w-full px-4 py-2.5 bg-white border border-[#C8C4A0] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500 placeholder:text-gray-400"
+                    class="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500 placeholder:text-gray-400"
                     placeholder="No. telepon...">
                 <div>
                     <label class="text-xs text-gray-500 mb-1 block">Jatuh Tempo (default 30 hari)</label>
                     <input type="date" x-model="dueDate"
-                        class="w-full px-4 py-2.5 bg-white border border-[#C8C4A0] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500 placeholder:text-gray-400">
+                        class="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500 placeholder:text-gray-400">
                 </div>
             </div>
 
@@ -364,252 +368,3 @@
 </div>
 
 @endsection
-
-@push('scripts')
-<script>
-function kasirApp() {
-    return {
-        products: @json($products),
-        categories: @json($categories),
-        activeCategory: null,
-        search: '',
-        cart: [],
-        paymentMethod: 'cash',
-        amountPaid: 0,
-        amountPaidDisplay: '',
-        customerName: '',
-        customerPhone: '',
-        dueDate: '',
-        checkoutLoading: false,
-        processingPayment: false,
-        snapToken: null,
-        showReceipt: false,
-        lastOrder: null,
-
-        get filteredProducts() {
-            let result = this.products;
-            if (this.activeCategory) {
-                result = result.filter(p => p.category_id === this.activeCategory);
-            }
-            if (this.search.trim()) {
-                const q = this.search.toLowerCase();
-                result = result.filter(p => p.name.toLowerCase().includes(q));
-            }
-            return result;
-        },
-
-        get cartTotal() {
-            return this.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-        },
-
-        get changeAmount() {
-            return this.amountPaid - this.cartTotal;
-        },
-
-        formatPrice(val) {
-            return Number(val).toLocaleString('id-ID');
-        },
-
-        onAmountPaidInput(e) {
-            let raw = e.target.value.replace(/[^\d]/g, '');
-            if (raw === '' || raw === '0') {
-                this.amountPaid = 0;
-                this.amountPaidDisplay = '';
-                return;
-            }
-            this.amountPaid = parseInt(raw, 10);
-            this.amountPaidDisplay = Number(raw).toLocaleString('id-ID');
-        },
-
-        onAmountPaidKeydown(e) {
-            const allowed = ['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab', 'Home', 'End'];
-            if (allowed.includes(e.key)) return;
-            if (e.key >= '0' && e.key <= '9') return;
-            if (e.ctrlKey || e.metaKey) return;
-            e.preventDefault();
-        },
-
-        addToCart(product) {
-            const existing = this.cart.find(i => i.product_id === product.id);
-            if (existing) {
-                if (existing.quantity < product.stock) {
-                    existing.quantity++;
-                }
-            } else {
-                if (product.stock > 0) {
-                    this.cart.push({
-                        product_id: product.id,
-                        name: product.name,
-                        price: product.price,
-                        stock: product.stock,
-                        quantity: 1,
-                    });
-                }
-            }
-        },
-
-        removeFromCart(index) {
-            this.cart.splice(index, 1);
-            if (this.cart.length === 0) this.amountPaid = 0;
-        },
-
-        updateQuantity(index, delta) {
-            const item = this.cart[index];
-            const newQty = item.quantity + delta;
-            if (newQty <= 0) {
-                this.removeFromCart(index);
-            } else if (newQty <= item.stock) {
-                item.quantity = newQty;
-            }
-        },
-
-        calcChange() {
-            // reactive getter, but trigger reactivity
-        },
-
-        async checkout() {
-            if (this.cart.length === 0) return;
-            if (this.paymentMethod === 'cash' && this.amountPaid < this.cartTotal) {
-                alert('Jumlah bayar kurang dari total');
-                return;
-            }
-            if (this.paymentMethod === 'debt') {
-                if (!this.customerName.trim()) {
-                    alert('Nama pelanggan harus diisi');
-                    return;
-                }
-                if (!this.customerPhone.trim()) {
-                    alert('No. telepon harus diisi');
-                    return;
-                }
-            }
-            this.checkoutLoading = true;
-            try {
-                const body = {
-                    items: this.cart.map(i => ({
-                        product_id: i.product_id,
-                        quantity: i.quantity,
-                    })),
-                    payment_method: this.paymentMethod,
-                    amount_paid: this.paymentMethod === 'cash' ? this.amountPaid : this.cartTotal,
-                };
-                if (this.paymentMethod === 'debt') {
-                    body.customer_name = this.customerName;
-                    body.customer_phone = this.customerPhone;
-                    if (this.dueDate) body.due_date = this.dueDate;
-                }
-                const res = await fetch('{{ route("kasir.checkout") }}', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                    },
-                    body: JSON.stringify(body),
-                });
-                const data = await res.json();
-                if (data.success) {
-                    if (data.snap_token) {
-                        this.snapToken = data.snap_token;
-                        this.lastOrder = { id: data.order_id };
-                        this.checkoutLoading = false;
-                        this.processingPayment = true;
-                        this.openSnap();
-                    } else {
-                        this.lastOrder = data.order;
-                        this.showReceipt = true;
-                        this.cart.forEach(cartItem => {
-                            const prod = this.products.find(p => p.id === cartItem.product_id);
-                            if (prod) prod.stock -= cartItem.quantity;
-                        });
-                    }
-                } else {
-                    alert(data.message || 'Gagal memproses transaksi');
-                }
-            } catch (e) {
-                alert('Terjadi kesalahan koneksi');
-            } finally {
-                if (!this.snapToken) {
-                    this.checkoutLoading = false;
-                }
-            }
-        },
-
-        openSnap() {
-            const snapToken = this.snapToken;
-            const self = this;
-            window.snap.pay(snapToken, {
-                onSuccess: function(result) {
-                    self.verifyPayment();
-                },
-                onPending: function(result) {
-                    alert('Pembayaran masih diproses. Silakan cek status transaksi nanti.');
-                    self.resetCart();
-                },
-                onError: function(result) {
-                    alert('Pembayaran gagal: ' + (result.status_message || 'Terjadi kesalahan'));
-                    self.resetCart();
-                },
-                onClose: function() {
-                    if (self.processingPayment) {
-                        self.processingPayment = false;
-                        self.snapToken = null;
-                        self.checkoutLoading = false;
-                        self.lastOrder = null;
-                    }
-                },
-            });
-        },
-
-        async verifyPayment() {
-            if (!this.lastOrder && !this.snapToken) return;
-            try {
-                const orderId = this.lastOrder?.id;
-                if (!orderId) return;
-                const res = await fetch('{{ route("kasir.payment-callback") }}', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                    },
-                    body: JSON.stringify({ order_id: orderId }),
-                });
-                const data = await res.json();
-                if (data.success) {
-                    this.lastOrder = data.order;
-                    this.showReceipt = true;
-                    this.cart.forEach(cartItem => {
-                        const prod = this.products.find(p => p.id === cartItem.product_id);
-                        if (prod) prod.stock -= cartItem.quantity;
-                    });
-                } else {
-                    alert(data.message || 'Pembayaran belum dikonfirmasi');
-                    this.resetCart();
-                }
-            } catch (e) {
-                alert('Gagal memverifikasi pembayaran');
-                this.resetCart();
-            } finally {
-                this.processingPayment = false;
-                this.snapToken = null;
-                this.checkoutLoading = false;
-            }
-        },
-
-        resetCart() {
-            this.cart = [];
-            this.amountPaid = 0;
-            this.amountPaidDisplay = '';
-            this.customerName = '';
-            this.customerPhone = '';
-            this.dueDate = '';
-            this.paymentMethod = 'cash';
-            this.showReceipt = false;
-            this.lastOrder = null;
-            this.snapToken = null;
-            this.processingPayment = false;
-        },
-
-    };
-}
-</script>
-@endpush
