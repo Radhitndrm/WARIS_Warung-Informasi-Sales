@@ -429,6 +429,9 @@ git push origin fitur/nama-fitur
 
 ---
 
+## 🎨 Link Figma
+https://www.figma.com/design/paQDpCnU6VUux0B2gUTVDN/PemWeb-Lanjut---Kasir-ChatBox?node-id=0-1&t=vNQsg9GFHZh3E695-0
+
 ## 📄 Lisensi
 
 MIT License — lihat file [LICENSE](LICENSE) untuk detail lengkap.
