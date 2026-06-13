@@ -251,15 +251,15 @@
 
             {{-- Payment Method --}}
             <div class="flex gap-2">
-                <button @click="paymentMethod = 'cash'" :class="paymentMethod === 'cash' ? 'bg-sidebar text-white border-sidebar' : 'bg-white text-gray-600 border-[#C8C4A0]'"
+                <button @click="paymentMethod = 'cash'" :class="paymentMethod === 'cash' ? 'bg-sidebar text-white border-sidebar' : 'bg-white text-gray-600 border-slate-300'"
                     class="flex-1 py-2.5 rounded-xl text-sm font-semibold border transition-colors">
                     <i class="fa-solid fa-money-bill-wave mr-1.5"></i>Tunai
                 </button>
-                <button @click="paymentMethod = 'qris'" :class="paymentMethod === 'qris' ? 'bg-sidebar text-white border-sidebar' : 'bg-white text-gray-600 border-[#C8C4A0]'"
+                <button @click="paymentMethod = 'qris'" :class="paymentMethod === 'qris' ? 'bg-sidebar text-white border-sidebar' : 'bg-white text-gray-600 border-slate-300'"
                     class="flex-1 py-2.5 rounded-xl text-sm font-semibold border transition-colors">
                     <i class="fa-solid fa-qrcode mr-1.5"></i>QRIS
                 </button>
-                <button @click="paymentMethod = 'debt'" :class="paymentMethod === 'debt' ? 'bg-amber-600 text-white border-amber-600' : 'bg-white text-gray-600 border-[#C8C4A0]'"
+                <button @click="paymentMethod = 'debt'" :class="paymentMethod === 'debt' ? 'bg-amber-600 text-white border-amber-600' : 'bg-white text-gray-600 border-slate-300'"
                     class="flex-1 py-2.5 rounded-xl text-sm font-semibold border transition-colors">
                     <i class="fa-solid fa-file-invoice-dollar mr-1.5"></i>Utang
                 </button>
@@ -293,7 +293,7 @@
                     placeholder="No. telepon...">
                 <div>
                     <label class="text-xs text-gray-500 mb-1 block">Jatuh Tempo (default 30 hari)</label>
-                    <input type="date" x-model="dueDate"
+                    <input type="date" x-model="dueDate" :min="new Date().toISOString().split('T')[0]"
                         class="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500 placeholder:text-gray-400">
                 </div>
             </div>
